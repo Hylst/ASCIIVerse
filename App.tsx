@@ -77,7 +77,7 @@ const App: React.FC = () => {
 
       {/* --- SIDEBAR NAVIGATION --- */}
       <aside className={`
-        fixed md:static inset-y-0 left-0 z-50 w-72 bg-slate-900/40 backdrop-blur-xl border-r border-white/5 transform transition-transform duration-300 ease-in-out
+        fixed md:static inset-y-0 left-0 z-50 w-64 bg-slate-900/40 backdrop-blur-xl border-r border-white/5 transform transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
         flex flex-col shadow-2xl
       `}>
@@ -85,13 +85,13 @@ const App: React.FC = () => {
           {/* Logo Glow */}
           <div className="absolute inset-0 bg-gradient-to-r from-accent/20 to-blue-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl"></div>
 
-          <h1 className="relative text-2xl font-black font-mono tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-accent-foreground to-white bg-[length:200%_auto] animate-[gradient_3s_linear_infinite]">
+          <h1 className="relative text-xl font-black font-mono tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-accent-foreground to-white bg-[length:200%_auto] animate-[gradient_3s_linear_infinite]">
             ASCIIverse
           </h1>
-          <p className="relative text-xs text-muted-foreground mt-1 font-medium tracking-wide">Creative Text Suite v2.0</p>
+          <p className="relative text-[10px] text-muted-foreground mt-1 font-medium tracking-wide">Creative Text Suite v2.0</p>
         </div>
 
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar">
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto custom-scrollbar">
           {navItems.map(item => {
             const isActive = currentView === item.id;
             return (
@@ -101,9 +101,9 @@ const App: React.FC = () => {
                   setCurrentView(item.id);
                   setSidebarOpen(false);
                 }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden ${isActive
-                    ? 'text-white font-bold shadow-lg shadow-accent/20 ring-1 ring-white/10'
-                    : 'text-muted-foreground hover:text-white hover:bg-white/5'
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 group relative overflow-hidden ${isActive
+                  ? 'text-white font-bold shadow-lg shadow-accent/20 ring-1 ring-white/10'
+                  : 'text-muted-foreground hover:text-white hover:bg-white/5'
                   }`}
               >
                 {/* Active Background Gradient */}
@@ -119,7 +119,7 @@ const App: React.FC = () => {
                 <div className={`relative z-10 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110 group-hover:rotate-3'}`}>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    width="20" height="20"
+                    width="18" height="18"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -131,10 +131,10 @@ const App: React.FC = () => {
                     {item.icon}
                   </svg>
                 </div>
-                <span className="relative z-10 text-sm tracking-wide">{item.label}</span>
+                <span className="relative z-10 text-xs tracking-wide font-medium">{item.label}</span>
 
                 {isActive && (
-                  <div className="relative z-10 ml-auto w-2 h-2 rounded-full bg-white animate-pulse shadow-[0_0_10px_rgba(255,255,255,0.8)]"></div>
+                  <div className="relative z-10 ml-auto w-1.5 h-1.5 rounded-full bg-white animate-pulse shadow-[0_0_10px_rgba(255,255,255,0.8)]"></div>
                 )}
               </button>
             );
@@ -148,20 +148,20 @@ const App: React.FC = () => {
               setCurrentView(ModuleView.APP_INFO);
               setSidebarOpen(false);
             }}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all border border-transparent ${currentView === ModuleView.APP_INFO
-                ? 'bg-white/10 text-white border-white/10'
-                : 'text-muted-foreground hover:text-white hover:bg-white/5'
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all border border-transparent ${currentView === ModuleView.APP_INFO
+              ? 'bg-white/10 text-white border-white/10'
+              : 'text-muted-foreground hover:text-white hover:bg-white/5'
               }`}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="16" y2="12" /><line x1="12" x2="12.01" y1="8" y2="8" /></svg>
-            <span className="font-medium text-sm">About & Info</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="16" y2="12" /><line x1="12" x2="12.01" y1="8" y2="8" /></svg>
+            <span className="font-medium text-xs">About & Info</span>
           </button>
         </div>
       </aside>
 
       {/* --- MAIN CONTENT AREA --- */}
       <main className="flex-1 flex flex-col min-w-0 relative z-10 bg-gradient-to-b from-transparent to-black/20">
-        <header className="h-16 border-b border-white/5 bg-slate-900/60 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-30">
+        <header className="h-14 border-b border-white/5 bg-slate-900/60 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-30">
           <div className="flex items-center gap-4">
             <button
               className="md:hidden p-2 text-muted-foreground hover:text-foreground transition-colors"
@@ -170,20 +170,23 @@ const App: React.FC = () => {
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" x2="21" y1="6" y2="6" /><line x1="3" x2="21" y1="12" y2="12" /><line x1="3" x2="21" y1="18" y2="18" /></svg>
             </button>
 
-            <h2 className="text-lg font-bold text-white flex items-center gap-2 animate-fade-in">
-              <span className="w-1.5 h-6 bg-accent rounded-full shadow-[0_0_10px_var(--color-accent)]"></span>
+            <h2 className="text-base font-bold text-white flex items-center gap-2 animate-fade-in">
+              <span className="w-1.5 h-5 bg-accent rounded-full shadow-[0_0_10px_var(--color-accent)]"></span>
               {currentView === ModuleView.APP_INFO ? 'Application Info' : navItems.find(i => i.id === currentView)?.label}
             </h2>
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-accent to-blue-500 border border-white/10 flex items-center justify-center text-xs font-bold text-white shadow-lg">
-              US
+            <div className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 flex items-center gap-2 group hover:bg-white/10 transition-colors">
+              <span className="text-xs font-black font-mono tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-accent to-blue-500">
+                ASCIIVerse
+              </span>
+              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
             </div>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar scroll-smooth">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar scroll-smooth">
           <div className="max-w-6xl mx-auto h-full animate-slide-in">
             {renderContent()}
           </div>
