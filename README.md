@@ -23,7 +23,6 @@
 - **Framework**: [React 18](https://reactjs.org/) + [TypeScript](https://www.typescriptlang.org/)
 - **Build Tool**: [Vite 6](https://vitejs.dev/)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/) (Semantic Design System)
-- **AI Integration**: [Google Gemini API](https://ai.google.dev/) (Optional)
 - **Deployment**: [Docker](https://www.docker.com/) (NGINX Alpine)
 
 ## 🚀 Getting Started
@@ -37,12 +36,7 @@
    ```bash
    npm install
    ```
-3. Set your API Key (optional for Gemini features):
-   Create a `.env` file and add:
-   ```env
-   GEMINI_API_KEY=your_api_key_here
-   ```
-4. Start development server:
+3. Start development server:
    ```bash
    npm run dev
    ```

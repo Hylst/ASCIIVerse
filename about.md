@@ -4,7 +4,7 @@
 
 ## Notre Philosophie
 
-- **Confidentialité Totale** : Toutes les transformations s'effectuent localement dans votre navigateur. Aucune donnée textuelle ou image n'est envoyée à un serveur (à l'exception des requêtes optionnelles à l'API Gemini pour la génération d'art ASCII).
+- **Confidentialité Totale** : Toutes les transformations s'effectuent localement dans votre navigateur. Aucune donnée textuelle ou image n'est envoyée à un serveur.
 - **Performance & Légèreté** : L'application est optimisée pour être rapide, réactive et compatible PWA (Progressive Web App) pour une utilisation hors-ligne.
 - **Esthétique Terminal** : Une interface moderne inspirée du cyberpunk et des terminaux informatiques, utilisant un système de design cohérent et sombre.
 
