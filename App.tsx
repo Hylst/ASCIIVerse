@@ -18,6 +18,51 @@ import AppInfo from './components/AppInfo';
 // --- THE MAINFRAME ENTRY POINT ---
 // "I'm in." - Every hacker ever.
 
+const AnimatedTitle = () => {
+  const [text, setText] = useState('ASCIIVerse');
+  const targetText = 'ASCIIVerse';
+  const chars = '!@#$%^&*()_+-=[]{}|;:,.<>?/~';
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    const animate = () => {
+      let iteration = 0;
+      clearInterval(interval);
+
+      interval = setInterval(() => {
+        setText(prev =>
+          prev.split('').map((letter, index) => {
+            if (index < iteration) return targetText[index];
+            return chars[Math.floor(Math.random() * chars.length)];
+          }).join('')
+        );
+
+        if (iteration >= targetText.length) {
+          clearInterval(interval);
+        }
+
+        iteration += 1 / 3;
+      }, 30);
+    };
+
+    // Glitch effect every 5 seconds
+    const loop = setInterval(animate, 5000);
+    animate(); // Initial run
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(loop);
+    };
+  }, []);
+
+  return (
+    <h1 className="relative text-xl font-black font-mono tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-accent via-purple-500 to-blue-500 animate-[hue-rotate_3s_linear_infinite]">
+      {text}
+    </h1>
+  );
+};
+
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ModuleView>(ModuleView.SOCIAL_FORMATTER);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -77,17 +122,15 @@ const App: React.FC = () => {
 
       {/* --- SIDEBAR NAVIGATION --- */}
       <aside className={`
-        fixed md:static inset-y-0 left-0 z-50 w-64 bg-slate-900/40 backdrop-blur-xl border-r border-white/5 transform transition-transform duration-300 ease-in-out
+        fixed md:static inset-y-0 left-0 z-50 w-52 bg-slate-900/40 backdrop-blur-xl border-r border-white/5 transform transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
         flex flex-col shadow-2xl
       `}>
-        <div className="p-6 border-b border-white/5 relative overflow-hidden group">
+        <div className="p-4 border-b border-white/5 relative overflow-hidden group">
           {/* Logo Glow */}
           <div className="absolute inset-0 bg-gradient-to-r from-accent/20 to-blue-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl"></div>
 
-          <h1 className="relative text-xl font-black font-mono tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-accent-foreground to-white bg-[length:200%_auto] animate-[gradient_3s_linear_infinite]">
-            ASCIIverse
-          </h1>
+          <AnimatedTitle />
           <p className="relative text-[10px] text-muted-foreground mt-1 font-medium tracking-wide">Creative Text Suite v2.0</p>
         </div>
 
