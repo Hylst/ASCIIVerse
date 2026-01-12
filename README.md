@@ -2,19 +2,68 @@
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-# Run and deploy your AI Studio app
+# 🌌 ASCIIVerse Studio
 
-This contains everything you need to run your app locally.
+**ASCIIVerse Studio** is a premium, high-tech creative suite for text generation, ASCII art, and social media formatting. Designed with a sleek terminal aesthetic, it's 100% frontend-only, privacy-focused, and offline-ready.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1Wba5rVTPGXLOhrIWzRrBy7hcS50JJdx8
+![ASCIIVerse Preview](file:///d:/0CODE/AntiGravity/ASCIIVerse/ASCIIVerse/public/pwa-512x512.png)
 
-## Run Locally
+## ✨ Features
 
-**Prerequisites:**  Node.js
+- 🔡 **ASCII Generator**: 50+ fonts for massive text banners.
+- 🖼️ **Image-to-ASCII**: Convert images to high-fidelity character art.
+- 🎭 **Kaomoji & Symbols**: Huge library of japanese emoticons and rare symbols.
+- 📱 **Social Formatter**: Style your posts for LinkedIn/Instagram with fancy fonts.
+- 📊 **Table Formatter**: Professional ASCII tables for code vs docs.
+- 🎨 **Drawing Canvas**: Create manual ASCII art on a digital grid.
+- ⚡ **PWA Ready**: Install it as an app and use it offline.
 
+## 🛠️ Technical Stack
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+- **Framework**: [React 18](https://reactjs.org/) + [TypeScript](https://www.typescriptlang.org/)
+- **Build Tool**: [Vite 6](https://vitejs.dev/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/) (Semantic Design System)
+- **AI Integration**: [Google Gemini API](https://ai.google.dev/) (Optional)
+- **Deployment**: [Docker](https://www.docker.com/) (NGINX Alpine)
+
+## 🚀 Getting Started
+
+### Prerequisites
+- [Node.js](https://nodejs.org/) (v18+)
+
+### Installation
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Set your API Key (optional for Gemini features):
+   Create a `.env` file and add:
+   ```env
+   GEMINI_API_KEY=your_api_key_here
+   ```
+4. Start development server:
+   ```bash
+   npm run dev
+   ```
+
+## 📦 Deployment
+
+Build the static version:
+```bash
+npm run build
+```
+
+Or use Docker:
+```bash
+docker build -t asciiverse-studio .
+docker run -p 8080:80 asciiverse-studio
+```
+
+## 📄 Documentation
+
+- [Changelog](changelog.md)
+- [À propos (FR)](about.md)
+
+## ⚖️ License
+MIT License. 100% Privacy - nothing leaves your browser.
