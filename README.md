@@ -54,6 +54,12 @@ docker build -t asciiverse-studio .
 docker run -p 8080:80 asciiverse-studio
 ```
 
+### 🌐 Shared Web Hosting (Apache)
+For shared hosting (like OVH, o2switch, etc.):
+1. Build the app: `npm run build`
+2. Copy the entire content of the `dist` folder to your server's `public_html` or `www` directory via FTP/SFTP.
+3. The included `.htaccess` file handles the routing for the SPA.
+
 ## 📄 Documentation
 
 - [Changelog](changelog.md)
