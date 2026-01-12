@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ModuleView } from './types';
 import AsciiGenerator from './components/AsciiGenerator';
 import SocialFormatter from './components/SocialFormatter';
