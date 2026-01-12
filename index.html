@@ -35,56 +35,9 @@
     <meta property="twitter:image" content="https://asciiverse.app/og-image.png" />
 
     <!-- Styling & Fonts (Loading the matrix...) -->
-    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    
-    <script>
-      // Initializing the visual subsystem...
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-              mono: ['JetBrains Mono', 'monospace'],
-            },
-            colors: {
-              terminal: {
-                bg: '#0f172a',    // Deep Void Blue
-                paper: '#1e293b', // Slate Panel
-                accent: '#10b981', // Matrix Green (Emerald)
-                text: '#f8fafc',  // Phosphor White
-                muted: '#94a3b8'  // Dimmed Text
-              }
-            }
-          }
-        }
-      }
-    </script>
-    <style>
-      body {
-        background-color: #0f172a;
-        color: #f8fafc;
-        overscroll-behavior: none; /* Prevents bounce on Mac */
-      }
-      /* Custom scrollbar for that retro terminal feel */
-      ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #1e293b; 
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #475569; 
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #64748b; 
-      }
-    </style>
   <script type="importmap">
 {
   "imports": {
