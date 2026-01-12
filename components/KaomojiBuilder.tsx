@@ -131,8 +131,8 @@ const KaomojiBuilder: React.FC = () => {
         <button
             onClick={() => setActiveTab(id)}
             className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap flex-none snap-start ${activeTab === id
-                    ? 'border-accent text-accent bg-muted/50'
-                    : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                ? 'border-accent text-accent bg-muted/50'
+                : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30'
                 }`}
         >
             {icon}
@@ -207,8 +207,8 @@ const KaomojiBuilder: React.FC = () => {
                                 <button
                                     onClick={handleCopy}
                                     className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${copied
-                                            ? 'bg-green-500 text-white shadow-green-200'
-                                            : 'bg-foreground text-background hover:opacity-90 shadow-md'
+                                        ? 'bg-green-500 text-white shadow-green-200'
+                                        : 'bg-foreground text-background hover:opacity-90 shadow-md'
                                         }`}
                                 >
                                     {copied ? 'Copied' : 'Copy'}
@@ -273,8 +273,8 @@ const PartButton: React.FC<{ active: boolean; onClick: () => void; label: string
     <button
         onClick={onClick}
         className={`h-12 rounded-lg border-2 transition-all font-mono text-sm flex items-center justify-center ${active
-                ? 'bg-accent text-accent-foreground border-accent font-bold shadow-md'
-                : 'bg-muted text-muted-foreground border-transparent hover:bg-muted/80 hover:border-border'
+            ? 'bg-accent text-accent-foreground border-accent font-bold shadow-md'
+            : 'bg-muted text-muted-foreground border-transparent hover:bg-muted/80 hover:border-border'
             }`}
     >
         {label}
@@ -288,4 +288,3 @@ const MoodBtn = ({ label, icon, onClick }: { label: string, icon: string, onClic
 );
 
 export default KaomojiBuilder;
-```
