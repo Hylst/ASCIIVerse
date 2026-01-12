@@ -1,0 +1,11 @@
+{
+  "name": "ASCIIverse Studio",
+  "short_name": "ASCIIverse",
+  "description": "The ultimate offline-ready creative suite for text. Generate ASCII art, format social media posts (LinkedIn, Twitter, Instagram), create Kaomoji, and stylize text with glitch effects. 100% Frontend, Privacy-focused.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1e293b",
+  "icons": [],
+  "requestFramePermissions": []
+}
