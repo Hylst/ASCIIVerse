@@ -276,6 +276,16 @@ const AppInfo: React.FC = () => {
                                 desc="Generates stylized usernames with prefixes, suffixes, and font effects like Glitch or Strikethrough. Simulates availability checks for major platforms."
                             />
                             <ModuleCard
+                                icon="🔄"
+                                title="Text Transformer"
+                                desc="Advanced utility for bulk text processing. Supports case conversion (15+ styles), Base64/URL/HTML encoding, regex replacement, and smart cleanup (removing accents, duplicates, or invisible chars)."
+                            />
+                            <ModuleCard
+                                icon="⚡"
+                                title="Cyber Style"
+                                desc="Apply futuristic and retro-themed visual styles using Unicode combining characters. Includes Matrix rain, Glitch distortion, Borg designations, and Retro terminal effects with adjustable intensity."
+                            />
+                            <ModuleCard
                                 icon="😀"
                                 title="Emoji Library"
                                 desc="A massive, categorized library of 2000+ emojis and symbols. Features a 'Skin Tone' selector, smart search, and an 'Inspector' mode to view Unicode/HTML codes."
