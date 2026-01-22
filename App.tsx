@@ -12,6 +12,7 @@ import SeparatorGenerator from './components/SeparatorGenerator';
 import ImageToAscii from './components/ImageToAscii';
 import TextDecorator from './components/TextDecorator';
 import TextTransformer from './components/TextTransformer';
+import CyberStyle from './components/CyberStyle';
 import KaomojiBuilder from './components/KaomojiBuilder';
 import AsciiArtGallery from './components/AsciiArtGallery';
 import AppInfo from './components/AppInfo';
@@ -83,6 +84,7 @@ const App: React.FC = () => {
       case ModuleView.IMAGE_TO_ASCII: return <ImageToAscii />;
       case ModuleView.TEXT_DECORATOR: return <TextDecorator />;
       case ModuleView.TEXT_TRANSFORMER: return <TextTransformer />;
+      case ModuleView.CYBER_STYLE: return <CyberStyle />;
       case ModuleView.ASCII_GALLERY: return <AsciiArtGallery />;
       case ModuleView.APP_INFO: return <AppInfo />;
       default: return <SocialFormatter />;
@@ -98,6 +100,7 @@ const App: React.FC = () => {
     { id: ModuleView.KAOMOJI_BUILDER, label: 'Kaomoji Builder', icon: <><circle cx="12" cy="12" r="10" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><line x1="9" y1="9" x2="9.01" y2="9" /><line x1="15" y1="9" x2="15.01" y2="9" /></> },
     { id: ModuleView.TEXT_DECORATOR, label: 'Text Decorator', icon: <><path d="M12 19l7-7 3 3-7 7-3-3z" /><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" /><path d="M2 2l7.586 7.586" /><circle cx="11" cy="11" r="2" /></> },
     { id: ModuleView.TEXT_TRANSFORMER, label: 'Text Transformer', icon: <><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" /></> },
+    { id: ModuleView.CYBER_STYLE, label: 'Cyber Style', icon: <><circle cx="12" cy="12" r="10" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /><path d="M2 12h20" /></> },
     { id: ModuleView.USERNAME_GENERATOR, label: 'Username FX', icon: <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></> },
     { id: ModuleView.KAOMOJI_LIBRARY, label: 'Kaomoji Library', icon: <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" /> },
     { id: ModuleView.IMAGE_TO_ASCII, label: 'Image to ASCII', icon: <><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></> },
