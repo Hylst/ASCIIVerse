@@ -106,7 +106,7 @@ const AppInfo: React.FC = () => {
                             </div>
                             <div>
                                 <div className="font-bold text-foreground">Geoffroy Streit</div>
-                                <div className="text-xs text-muted-foreground">Lead Developer & Designer</div>
+                                <div className="text-xs text-muted-foreground">Passionate developer & retro gEek</div>
                             </div>
                         </div>
                         <div className="space-y-3">
