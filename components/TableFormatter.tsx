@@ -14,15 +14,17 @@ const TableFormatter: React.FC = () => {
     const [inputType, setInputType] = useState<'auto' | 'csv' | 'json'>('auto');
 
     // Style settings
-    const [borderStyle, setBorderStyle] = useState<BorderStyle>('simple');
+    const [borderStyle, setBorderStyle] = useState<BorderStyle>('double');
     const [padding, setPadding] = useState(1);
     const [verticalPadding, setVerticalPadding] = useState(0);
     const [globalAlignment, setGlobalAlignment] = useState<Alignment>('left');
     const [mergeCells, setMergeCells] = useState(false);
+    const [autoWrap, setAutoWrap] = useState(false);
+    const [maxTableWidth, setMaxTableWidth] = useState(80);
 
     // Column specific settings
     const [colConfigs, setColConfigs] = useState<ColumnConfig[]>([]);
-    const [forceColSync, setForceColSync] = useState(0); // Trigger to force re-calc
+    const [copied, setCopied] = useState(false);
 
     const [error, setError] = useState('');
 
@@ -64,7 +66,7 @@ const TableFormatter: React.FC = () => {
                 const lines = inputData.split('\n').filter(l => l.trim() !== '');
                 if (lines.length === 0) return { headers: [], rows: [] };
 
-                // Detect Separator: Check first line
+                // Detect Separator
                 const firstLine = lines[0];
                 const tabCount = (firstLine.match(/\t/g) || []).length;
                 const commaCount = (firstLine.match(/,/g) || []).length;
@@ -108,18 +110,12 @@ const TableFormatter: React.FC = () => {
         setColConfigs(prev => {
             const newConfigs: ColumnConfig[] = [];
             parsedData.headers.forEach((_, i) => {
-                // Preserve existing config if possible, else default
                 if (prev[i]) newConfigs.push(prev[i]);
-                else newConfigs.push({ alignment: 'left', maxWidth: 0 });
+                else newConfigs.push({ alignment: globalAlignment, maxWidth: 0 });
             });
             return newConfigs;
         });
-    }, [parsedData.headers.length, forceColSync]);
-
-    // Bulk update alignment when global changes, but allow overrides later
-    useEffect(() => {
-        setColConfigs(prev => prev.map(c => ({ ...c, alignment: globalAlignment })));
-    }, [globalAlignment]);
+    }, [parsedData.headers.length]);
 
     const toggleColAlign = (index: number) => {
         setColConfigs(prev => prev.map((c, i) => {
@@ -135,6 +131,12 @@ const TableFormatter: React.FC = () => {
         const { headers, rows } = parsedData;
         const allRows = [headers, ...rows];
 
+        // Calculate actual character width (accounting for Unicode)
+        const getDisplayWidth = (str: string): number => {
+            // Simple approximation - could be enhanced for full Unicode support
+            return str.length;
+        };
+
         // 1. Calculate Column Widths
         const colWidths = headers.map((_, colIndex) => {
             let max = 0;
@@ -143,16 +145,17 @@ const TableFormatter: React.FC = () => {
             allRows.forEach(row => {
                 let text = row[colIndex] || '';
                 // Truncate if maxWidth is set
-                if (config.maxWidth > 0 && text.length > config.maxWidth) {
-                    text = text.substring(0, config.maxWidth) + '…';
+                if (config.maxWidth > 0 && getDisplayWidth(text) > config.maxWidth) {
+                    text = text.substring(0, config.maxWidth - 1) + '…';
                 }
-                if (text.length > max) max = text.length;
+                const width = getDisplayWidth(text);
+                if (width > max) max = width;
             });
             return max;
         });
 
         const alignText = (text: string, width: number, align: Alignment) => {
-            const len = text.length;
+            const len = getDisplayWidth(text);
             const diff = Math.max(0, width - len);
             if (align === 'left') return text + ' '.repeat(diff);
             if (align === 'right') return ' '.repeat(diff) + text;
@@ -171,17 +174,19 @@ const TableFormatter: React.FC = () => {
 
             const renderLineString = (rowData: string[]) => {
                 let line = '';
-
-                // Border Chars
                 const styles = getBorderChars(borderStyle);
                 const sep = styles.v;
 
-                if (borderStyle === 'markdown') return `|${rowData.map((c, i) => {
-                    const conf = colConfigs[i] || { alignment: 'left', maxWidth: 0 };
-                    let txt = c;
-                    if (conf.maxWidth > 0 && txt.length > conf.maxWidth) txt = txt.substring(0, conf.maxWidth) + '…';
-                    return ' ' + alignText(txt, colWidths[i], conf.alignment) + ' ';
-                }).join('|')}|`;
+                if (borderStyle === 'markdown') {
+                    return `|${rowData.map((c, i) => {
+                        const conf = colConfigs[i] || { alignment: 'left', maxWidth: 0 };
+                        let txt = c;
+                        if (conf.maxWidth > 0 && getDisplayWidth(txt) > conf.maxWidth) {
+                            txt = txt.substring(0, conf.maxWidth - 1) + '…';
+                        }
+                        return ' ' + alignText(txt, colWidths[i], conf.alignment) + ' ';
+                    }).join('|')}|`;
+                }
 
                 if (borderStyle !== 'none') line += sep;
 
@@ -189,9 +194,9 @@ const TableFormatter: React.FC = () => {
                     const config = colConfigs[i] || { alignment: 'left', maxWidth: 0 };
                     let cellContent = rowData[i];
 
-                    // Truncate logic for display
-                    if (config.maxWidth > 0 && cellContent.length > config.maxWidth && cellContent.trim() !== '') {
-                        cellContent = cellContent.substring(0, config.maxWidth) + '…';
+                    // Truncate logic
+                    if (config.maxWidth > 0 && getDisplayWidth(cellContent) > config.maxWidth && cellContent.trim() !== '') {
+                        cellContent = cellContent.substring(0, config.maxWidth - 1) + '…';
                     }
 
                     if (i > 0) {
@@ -285,53 +290,76 @@ const TableFormatter: React.FC = () => {
 
     const copyToClipboard = () => {
         navigator.clipboard.writeText(outputTable);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    const exportAsFile = () => {
+        const blob = new Blob([outputTable], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'table.txt';
+        a.click();
+        URL.revokeObjectURL(url);
     };
 
     return (
-        <div className="flex flex-col h-full gap-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full min-h-0">
+        <div className="flex flex-col gap-6 pb-12">
+            {/* Header */}
+            <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                    <span className="text-2xl">📊</span>
+                </div>
+                <div>
+                    <h1 className="text-2xl font-bold text-white">Table Maker</h1>
+                    <p className="text-sm text-muted-foreground">Convert CSV/JSON to beautiful ASCII tables</p>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                 {/* --- LEFT COLUMN: Input & Config --- */}
-                <div className="flex flex-col gap-4 h-full min-h-0 overflow-hidden">
+                <div className="flex flex-col gap-4">
 
                     {/* 1. Input Source */}
-                    <div className="bg-card p-4 rounded-xl border border-border shrink-0">
+                    <div className="bg-card p-4 rounded-xl border border-border">
                         <div className="flex justify-between items-center mb-3">
                             <h3 className="text-accent font-bold flex items-center gap-2 text-sm uppercase tracking-wider">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" x2="8" y1="13" y2="13" /><line x1="16" x2="8" y1="17" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
                                 Data Source
                             </h3>
                             <div className="flex gap-2">
-                                <button onClick={() => loadSample('users')} className="text-[10px] bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded text-slate-300">Users</button>
-                                <button onClick={() => loadSample('sales')} className="text-[10px] bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded text-slate-300">Sales (Excel)</button>
-                                <button onClick={() => loadSample('inventory')} className="text-[10px] bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded text-slate-300">JSON</button>
+                                <button onClick={() => loadSample('users')} className="text-[10px] bg-muted hover:bg-muted/80 px-2 py-1 rounded text-foreground transition-colors">Users</button>
+                                <button onClick={() => loadSample('sales')} className="text-[10px] bg-muted hover:bg-muted/80 px-2 py-1 rounded text-foreground transition-colors">Sales</button>
+                                <button onClick={() => loadSample('inventory')} className="text-[10px] bg-muted hover:bg-muted/80 px-2 py-1 rounded text-foreground transition-colors">JSON</button>
                             </div>
                         </div>
 
                         <textarea
                             value={inputData}
                             onChange={(e) => setInputData(e.target.value)}
-                            className="w-full h-32 bg-background border border-border rounded-lg p-3 font-mono text-xs text-foreground focus:outline-none focus:border-accent resize-none custom-scrollbar whitespace-nowrap"
-                            placeholder="Paste CSV, Excel data, or JSON here..."
+                            className="w-full h-40 bg-background border border-border rounded-lg p-3 font-mono text-xs text-foreground focus:outline-none focus:border-accent resize-none custom-scrollbar"
+                            placeholder="Paste CSV, TSV, or JSON here..."
                         />
                         {error && <p className="text-destructive text-xs mt-2 flex items-center gap-1"><span className="font-bold">Error:</span> {error}</p>}
                     </div>
 
-                    {/* 2. Column Controls (Visual) */}
+                    {/* 2. Column Controls */}
                     {parsedData.headers.length > 0 && (
-                        <div className="bg-card p-3 rounded-xl border border-border shrink-0">
+                        <div className="bg-card p-3 rounded-xl border border-border">
                             <h4 className="text-[10px] font-bold text-muted-foreground uppercase mb-2">Column Alignment</h4>
                             <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-1">
                                 {parsedData.headers.map((h, i) => (
                                     <button
                                         key={i}
                                         onClick={() => toggleColAlign(i)}
-                                        className="flex-shrink-0 px-3 py-1.5 bg-secondary border border-border rounded-md text-xs font-mono text-muted-foreground hover:border-accent transition-colors flex items-center gap-2 group"
+                                        className="flex-shrink-0 px-3 py-1.5 bg-secondary border border-border rounded-md text-xs font-mono text-muted-foreground hover:border-accent transition-colors flex items-center gap-2"
                                         title="Click to toggle alignment"
                                     >
-                                        <span>{h}</span>
-                                        <span className={`text-[10px] font-bold ${colConfigs[i]?.alignment !== 'left' ? 'text-accent' : 'text-slate-600'}`}>
-                                            {colConfigs[i]?.alignment === 'left' ? 'L' : colConfigs[i]?.alignment === 'center' ? 'C' : 'R'}
+                                        <span className="truncate max-w-[100px]">{h}</span>
+                                        <span className={`text-[10px] font-bold ${colConfigs[i]?.alignment !== 'left' ? 'text-accent' : 'text-muted-foreground/50'}`}>
+                                            {colConfigs[i]?.alignment === 'left' ? '◀' : colConfigs[i]?.alignment === 'center' ? '▣' : '▶'}
                                         </span>
                                     </button>
                                 ))}
@@ -339,10 +367,10 @@ const TableFormatter: React.FC = () => {
                         </div>
                     )}
 
-                    {/* 3. Global Settings */}
-                    <div className="bg-card p-4 rounded-xl border border-border flex-1 overflow-y-auto custom-scrollbar">
+                    {/* 3. Style Settings */}
+                    <div className="bg-card p-4 rounded-xl border border-border">
                         <h3 className="text-accent font-bold mb-4 text-sm uppercase tracking-wider">Style Settings</h3>
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-6">
+                        <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1">
                                 <label className="text-xs text-muted-foreground font-bold">Border Style</label>
                                 <select
@@ -377,7 +405,7 @@ const TableFormatter: React.FC = () => {
                             <div className="space-y-2">
                                 <div className="flex justify-between">
                                     <label className="text-xs text-muted-foreground">Horizontal Padding</label>
-                                    <span className="text-xs text-accent">{padding}</span>
+                                    <span className="text-xs text-accent font-mono">{padding}</span>
                                 </div>
                                 <input
                                     type="range" min="0" max="6"
@@ -390,7 +418,7 @@ const TableFormatter: React.FC = () => {
                             <div className="space-y-2">
                                 <div className="flex justify-between">
                                     <label className="text-xs text-muted-foreground">Vertical Padding</label>
-                                    <span className="text-xs text-accent">{verticalPadding}</span>
+                                    <span className="text-xs text-accent font-mono">{verticalPadding}</span>
                                 </div>
                                 <input
                                     type="range" min="0" max="2"
@@ -419,32 +447,40 @@ const TableFormatter: React.FC = () => {
                 </div>
 
                 {/* --- RIGHT COLUMN: Output --- */}
-                <div className="flex flex-col h-full bg-background rounded-xl border border-border overflow-hidden relative group">
+                <div className="flex flex-col bg-background rounded-xl border border-border overflow-hidden relative">
                     <div className="absolute top-4 right-4 z-10 flex gap-2">
-                        <span className="px-2 py-1 rounded bg-muted/80 text-[10px] text-muted-foreground border border-border">
-                            {outputTable.length} chars
+                        <span className="px-2 py-1 rounded bg-muted/80 text-[10px] text-muted-foreground border border-border font-mono">
+                            {outputTable.split('\n').length} lines
                         </span>
                         <button
-                            onClick={copyToClipboard}
-                            className="bg-accent text-accent-foreground px-4 py-1.5 rounded-lg font-bold text-xs hover:opacity-90 flex items-center gap-2 shadow-lg active:scale-95 transition-all"
+                            onClick={exportAsFile}
+                            className="bg-muted text-foreground px-3 py-1.5 rounded-lg font-bold text-xs hover:bg-muted/80 flex items-center gap-1 transition-all"
+                            title="Download as .txt file"
                         >
-                            Copy
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                        </button>
+                        <button
+                            onClick={copyToClipboard}
+                            className={`px-4 py-1.5 rounded-lg font-bold text-xs flex items-center gap-2 shadow-lg active:scale-95 transition-all ${copied ? 'bg-green-500 text-white' : 'bg-accent text-accent-foreground hover:opacity-90'
+                                }`}
+                        >
+                            {copied ? '✓ Copied' : 'Copy'}
                         </button>
                     </div>
 
                     {/* Preview Header */}
                     <div className="h-8 bg-muted border-b border-border flex items-center px-4">
                         <div className="flex gap-1.5">
-                            <div className="w-2.5 h-2.5 rounded-full bg-destructive/20"></div>
-                            <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/20"></div>
-                            <div className="w-2.5 h-2.5 rounded-full bg-green-500/20"></div>
+                            <div className="w-2.5 h-2.5 rounded-full bg-red-500/30"></div>
+                            <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/30"></div>
+                            <div className="w-2.5 h-2.5 rounded-full bg-green-500/30"></div>
                         </div>
                         <div className="mx-auto text-[10px] text-muted-foreground/60 font-mono uppercase tracking-widest">Table Preview</div>
                     </div>
 
-                    <div className="p-6 overflow-auto custom-scrollbar flex items-start justify-center min-h-0 flex-1">
-                        <pre className="font-mono text-accent text-xs md:text-sm whitespace-pre leading-relaxed drop-shadow-[0_0_8px_rgba(var(--accent-rgb),0.15)]">
-                            {outputTable}
+                    <div className="p-6 overflow-auto custom-scrollbar flex-1">
+                        <pre className="font-mono text-accent text-xs leading-relaxed">
+                            {outputTable || 'Your table will appear here...'}
                         </pre>
                     </div>
                 </div>
