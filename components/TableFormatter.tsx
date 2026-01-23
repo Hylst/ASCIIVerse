@@ -19,8 +19,9 @@ const TableFormatter: React.FC = () => {
     const [verticalPadding, setVerticalPadding] = useState(0);
     const [globalAlignment, setGlobalAlignment] = useState<Alignment>('left');
     const [mergeCells, setMergeCells] = useState(false);
-    const [autoWrap, setAutoWrap] = useState(false);
-    const [maxTableWidth, setMaxTableWidth] = useState(80);
+
+    // Output state for manual editing
+    const [manualOutput, setManualOutput] = useState('');
 
     // Column specific settings
     const [colConfigs, setColConfigs] = useState<ColumnConfig[]>([]);
@@ -105,6 +106,27 @@ const TableFormatter: React.FC = () => {
         }
     }, [inputData, inputType]);
 
+    // Transpose Function
+    const handleTranspose = () => {
+        const { headers, rows } = parsedData;
+        if (headers.length === 0) return;
+
+        const allData = [headers, ...rows];
+        const newRows = allData[0].map((_, colIndex) => allData.map(row => row[colIndex]));
+
+        // Convert back to CSV string for simplicity
+        const newCsv = newRows.map(row => row.join(', ')).join('\n');
+        setInputData(newCsv);
+        setInputType('auto'); // Reset to auto/csv
+    };
+
+    // Compact Mode
+    const handleCompact = () => {
+        setPadding(0);
+        setVerticalPadding(0);
+        setBorderStyle('compact');
+    };
+
     // Sync Column Configs when headers change
     useEffect(() => {
         setColConfigs(prev => {
@@ -125,7 +147,7 @@ const TableFormatter: React.FC = () => {
         }));
     };
 
-    const outputTable = useMemo(() => {
+    const generatedTable = useMemo(() => {
         if (parsedData.headers.length === 0) return '';
 
         const { headers, rows } = parsedData;
@@ -133,7 +155,6 @@ const TableFormatter: React.FC = () => {
 
         // Calculate actual character width (accounting for Unicode)
         const getDisplayWidth = (str: string): number => {
-            // Simple approximation - could be enhanced for full Unicode support
             return str.length;
         };
 
@@ -288,14 +309,19 @@ const TableFormatter: React.FC = () => {
 
     }, [parsedData, colConfigs, borderStyle, padding, verticalPadding, mergeCells]);
 
+    // Update manual output when generated table changes
+    useEffect(() => {
+        setManualOutput(generatedTable);
+    }, [generatedTable]);
+
     const copyToClipboard = () => {
-        navigator.clipboard.writeText(outputTable);
+        navigator.clipboard.writeText(manualOutput);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
 
     const exportAsFile = () => {
-        const blob = new Blob([outputTable], { type: 'text/plain' });
+        const blob = new Blob([manualOutput], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -336,12 +362,24 @@ const TableFormatter: React.FC = () => {
                             </div>
                         </div>
 
-                        <textarea
-                            value={inputData}
-                            onChange={(e) => setInputData(e.target.value)}
-                            className="w-full h-40 bg-background border border-border rounded-lg p-3 font-mono text-xs text-foreground focus:outline-none focus:border-accent resize-none custom-scrollbar"
-                            placeholder="Paste CSV, TSV, or JSON here..."
-                        />
+                        <div className="relative">
+                            <textarea
+                                value={inputData}
+                                onChange={(e) => setInputData(e.target.value)}
+                                className="w-full h-40 bg-background border border-border rounded-lg p-3 font-mono text-xs text-foreground focus:outline-none focus:border-accent resize-none custom-scrollbar"
+                                placeholder="Paste CSV, TSV, or JSON here..."
+                            />
+
+                            {/* Transpose Tool */}
+                            <button
+                                onClick={handleTranspose}
+                                className="absolute bottom-2 right-2 p-1.5 bg-muted/90 hover:bg-accent text-foreground hover:text-white rounded shadow-md border border-border transition-all"
+                                title="Transpose Rows/Columns"
+                            >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l-6 6 6 6" /><path d="M18 8l-6 6 6 6" /><path d="M12 2v20" /><path d="M18 8v14" /></svg>
+                            </button>
+                        </div>
+
                         {error && <p className="text-destructive text-xs mt-2 flex items-center gap-1"><span className="font-bold">Error:</span> {error}</p>}
                     </div>
 
@@ -369,7 +407,17 @@ const TableFormatter: React.FC = () => {
 
                     {/* 3. Style Settings */}
                     <div className="bg-card p-4 rounded-xl border border-border">
-                        <h3 className="text-accent font-bold mb-4 text-sm uppercase tracking-wider">Style Settings</h3>
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-accent font-bold text-sm uppercase tracking-wider">Style Settings</h3>
+                            <button
+                                onClick={handleCompact}
+                                className="text-[10px] bg-muted border border-border px-2 py-1 rounded text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                            >
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="4 14 10 14 10 20" /><polyline points="20 10 14 10 14 4" /><line x1="14" y1="10" x2="21" y2="3" /><line x1="3" y1="21" x2="10" y2="14" /></svg>
+                                Compact Mode
+                            </button>
+                        </div>
+
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1">
                                 <label className="text-xs text-muted-foreground font-bold">Border Style</label>
@@ -447,10 +495,10 @@ const TableFormatter: React.FC = () => {
                 </div>
 
                 {/* --- RIGHT COLUMN: Output --- */}
-                <div className="flex flex-col bg-background rounded-xl border border-border overflow-hidden relative">
+                <div className="flex flex-col bg-background rounded-xl border border-border overflow-hidden relative h-[600px]">
                     <div className="absolute top-4 right-4 z-10 flex gap-2">
-                        <span className="px-2 py-1 rounded bg-muted/80 text-[10px] text-muted-foreground border border-border font-mono">
-                            {outputTable.split('\n').length} lines
+                        <span className="px-2 py-1 rounded bg-muted/80 text-[10px] text-muted-foreground border border-border font-mono pointer-events-none">
+                            {manualOutput.split('\n').length} lines
                         </span>
                         <button
                             onClick={exportAsFile}
@@ -469,19 +517,26 @@ const TableFormatter: React.FC = () => {
                     </div>
 
                     {/* Preview Header */}
-                    <div className="h-8 bg-muted border-b border-border flex items-center px-4">
+                    <div className="h-8 bg-muted border-b border-border flex items-center px-4 shrink-0">
                         <div className="flex gap-1.5">
                             <div className="w-2.5 h-2.5 rounded-full bg-red-500/30"></div>
                             <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/30"></div>
                             <div className="w-2.5 h-2.5 rounded-full bg-green-500/30"></div>
                         </div>
-                        <div className="mx-auto text-[10px] text-muted-foreground/60 font-mono uppercase tracking-widest">Table Preview</div>
+                        <div className="mx-auto text-[10px] text-muted-foreground/60 font-mono uppercase tracking-widest flex items-center gap-2">
+                            <span>Editable Preview</span>
+                            <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 text-[8px] font-bold">NEW</span>
+                        </div>
                     </div>
 
-                    <div className="p-6 overflow-auto custom-scrollbar flex-1">
-                        <pre className="font-mono text-accent text-xs leading-relaxed">
-                            {outputTable || 'Your table will appear here...'}
-                        </pre>
+                    <div className="p-0 flex-1 relative">
+                        <textarea
+                            value={manualOutput}
+                            onChange={(e) => setManualOutput(e.target.value)}
+                            className="w-full h-full bg-transparent p-6 font-mono text-accent text-xs leading-relaxed resize-none focus:outline-none custom-scrollbar whitespace-pre"
+                            spellCheck={false}
+                            placeholder="Your table will appear here..."
+                        />
                     </div>
                 </div>
             </div>
