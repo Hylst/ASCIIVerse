@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.0] - 2026-01-23
+
+### Added
+- **Text Transformer**: New advanced tool for text manipulation (15+ cases, regex, encoding, cleaning).
+- **Cyber Style**: New generator for futuristic text effects (Matrix, Glitch, Borg, Retro, Cyber).
+- **Table Maker v2**: Fully editable result preview, data transposition tool, and compact mode.
+
+### Fixed
+- **Scrolling**: Fixed vertical scrolling issue in main content area.
+- **UI Consistency**: Updated creator title and fixed CSS warnings for Tailwind v4.
+- **Table Alignment**: Improved ASCII table width calculation for better precision.
+
 ## [2.0.0] - 2026-01-12
 
 ### Added

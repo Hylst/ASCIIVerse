@@ -51,7 +51,7 @@ const AppInfo: React.FC = () => {
                     Designed to be fast, private, and offline-ready.
                 </p>
                 <div className="mt-6 flex flex-wrap gap-3">
-                    <Badge label="v2.0.0" color="emerald" />
+                    <Badge label="v2.1.0" color="emerald" />
                     <Badge label="MIT License" color="blue" />
                     <Badge label="100% Frontend" color="purple" />
                     <Badge label="Zero Tracking" color="orange" />
