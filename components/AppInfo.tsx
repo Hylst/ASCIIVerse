@@ -51,7 +51,7 @@ const AppInfo: React.FC = () => {
                     Designed to be fast, private, and offline-ready.
                 </p>
                 <div className="mt-6 flex flex-wrap gap-3">
-                    <Badge label="v2.1.0" color="emerald" />
+                    <Badge label="v2.1.1" color="emerald" />
                     <Badge label="MIT License" color="blue" />
                     <Badge label="100% Frontend" color="purple" />
                     <Badge label="Zero Tracking" color="orange" />
@@ -110,9 +110,9 @@ const AppInfo: React.FC = () => {
                             </div>
                         </div>
                         <div className="space-y-3">
-                            <a href="mailto:geoffroy.streit@gmail.com" className="flex items-center gap-3 p-3 bg-background rounded-lg hover:bg-muted border border-border transition-colors group">
+                            <a href="mailto:geoffroy.streit@ik.me" className="flex items-center gap-3 p-3 bg-background rounded-lg hover:bg-muted border border-border transition-colors group">
                                 <svg className="text-muted-foreground group-hover:text-accent" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>
-                                <span className="text-sm text-foreground/80">geoffroy.streit@gmail.com</span>
+                                <span className="text-sm text-foreground/80">geoffroy.streit@ik.me</span>
                             </a>
                         </div>
                     </div>
@@ -179,16 +179,37 @@ const AppInfo: React.FC = () => {
                                         No personal data, inputs, or drawings are sent to any external server.
                                         All data is stored locally on your device using <code>LocalStorage</code> and <code>IndexedDB</code>.
                                         We do not use cookies for tracking or analytics.
+                                        If you write to the contact address, your message stays in the publisher's mailbox
+                                        (Infomaniak Network SA, Switzerland) and is only used to reply.
                                     </p>
                                 </div>
                                 <div>
                                     <h4 className="text-sm font-bold text-foreground mb-1">Attribution</h4>
                                     <ul className="list-disc pl-4 space-y-1">
                                         <li>Icons by Lucide & Feather.</li>
-                                        <li>Fonts: Inter (Google Fonts) & JetBrains Mono.</li>
+                                        <li>Fonts: Inter & JetBrains Mono, self-hosted by hylst.fr.</li>
                                         <li>Built with React, Tailwind CSS & Vite.</li>
                                     </ul>
                                 </div>
+                            </div>
+
+                            <div className="p-4 bg-background rounded-lg border border-border">
+                                <h4 className="text-sm font-bold text-foreground mb-2">Publisher, hosting & AI</h4>
+                                <p className="mb-2">
+                                    Published by Geoffroy Streit on the hylst.fr platform, as a personal, non-professional site.
+                                    Hosted by Hostinger International Limited, 61 Lordou Vironos Street, 6023 Larnaca, Cyprus
+                                    (virtual private server located in the United Kingdom).
+                                </p>
+                                <p className="mb-2">
+                                    Like any web server, it keeps technical logs (IP address, date, requested page, browser)
+                                    for security, for twelve months at most.
+                                </p>
+                                <p className="mb-2">
+                                    Designed and developed by Geoffroy Streit, with AI assistance.
+                                </p>
+                                <a href="https://hylst.fr/mentions-legales.html" target="_blank" rel="noopener" className="text-accent underline underline-offset-2 hover:text-foreground">
+                                    Legal notice and privacy policy of the platform (in French)
+                                </a>
                             </div>
                         </div>
                     </div>

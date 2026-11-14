@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.1] - 2026-11-14
+
+### Changed
+- **About & Legal**: new "Publisher, hosting & AI" block (non-professional publisher, host Hostinger International Limited, server logs kept twelve months at most, AI assistance) with a link to the legal notice of the hylst.fr platform. The privacy note names the mailbox provider (Infomaniak, Switzerland).
+- **Contact**: address changed to `geoffroy.streit@ik.me`.
+- **index.html**: fixes previously applied by hand to the published build on hylst.fr are now in the source: canonical URL, `<base href="/asciiverse/">`, and fonts self-hosted by the platform (`/assets/fonts/fonts.css`, no Google Fonts request).
+
 ## [2.1.0] - 2026-01-23
 
 ### Added
