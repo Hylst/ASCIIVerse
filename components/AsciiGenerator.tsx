@@ -1,9 +1,13 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { FONTS, FRAMES, ZALGO_UP, ZALGO_MID, ZALGO_DOWN, ASCII_ART_TEMPLATES } from '../constants';
-import { AsciiFont, AsciiFrame } from '../types';
+import { AsciiFont } from '../types';
 
 type TabType = 'style' | 'layout' | 'decor' | 'presets';
+
+// Presets grouped by category for the dropdown
+const TEMPLATE_GROUPS = Array.from(new Set(ASCII_ART_TEMPLATES.map(t => t.category)))
+    .map(category => ({ category, items: ASCII_ART_TEMPLATES.filter(t => t.category === category) }));
 
 const AsciiGenerator: React.FC = () => {
     // --- MEMORY BANKS (Persistence) ---
@@ -18,8 +22,6 @@ const AsciiGenerator: React.FC = () => {
     }, [inputText]);
 
     // --- CONFIGURATION MATRIX ---
-
-    // Style: The aesthetic choices
     const [selectedFontId, setSelectedFontId] = useState<string>('normal');
     const [isReversed, setIsReversed] = useState(false);
 
@@ -41,44 +43,41 @@ const AsciiGenerator: React.FC = () => {
     const [fontSearch, setFontSearch] = useState('');
     const [copied, setCopied] = useState(false);
 
-    // Memoizing these lookups to save precious CPU cycles
     const selectedFont = useMemo(() => FONTS.find(f => f.id === selectedFontId) || FONTS[0], [selectedFontId]);
     const selectedFrame = useMemo(() => FRAMES.find(f => f.id === selectedFrameId) || FRAMES[0], [selectedFrameId]);
 
-    // Filtering fonts... because scrolling through 50 items is so 1999
     const filteredFonts = useMemo(() => {
-        return FONTS.filter(font =>
-            font.name.toLowerCase().includes(fontSearch.toLowerCase())
-        );
+        const q = fontSearch.toLowerCase();
+        return FONTS.filter(font => font.name.toLowerCase().includes(q));
     }, [fontSearch]);
+
+    // Font cards preview the user's own text (first line, shortened)
+    const sampleText = useMemo(() => {
+        const first = inputText.split('\n').find(l => l.trim()) || '';
+        const s = first.trim().slice(0, 24);
+        return s || 'Abc 123';
+    }, [inputText]);
 
     // --- TRANSFORMATION ENGINE ---
 
     // 1. Text Mapping (The "Font" logic)
     const transformText = (text: string, font: AsciiFont, reverse: boolean): string => {
         let result = text;
-        // Flip it and reverse it (Missy Elliott style)
         if (reverse) result = result.split('').reverse().join('');
         // Upside down fonts usually need a reverse to be readable
         if (font.id === 'upside_down' && !reverse) result = result.split('').reverse().join('');
-
-        // The core mapping loop
-        result = result.split('').map(char => font.map[char] || char).join('');
-        return result;
+        return result.split('').map(char => font.map[char] || char).join('');
     };
 
-    // 2. The Zalgo Invocation
-    // Adds combining diacritics to create that "cursed" look
+    // 2. The Zalgo Invocation: combining diacritics for that "cursed" look
     const applyZalgo = (text: string) => {
         let result = '';
         for (let i = 0; i < text.length; i++) {
             result += text[i];
-            if (text[i] === ' ' || text[i] === '\n') continue; // Don't curse the whitespace
-
+            if (text[i] === ' ' || text[i] === '\n') continue;
             const numUp = Math.floor(Math.random() * zalgoIntensity);
             const numMid = Math.floor(Math.random() * (zalgoIntensity / 2));
             const numDown = Math.floor(Math.random() * zalgoIntensity);
-
             for (let j = 0; j < numUp; j++) result += ZALGO_UP[Math.floor(Math.random() * ZALGO_UP.length)];
             for (let j = 0; j < numMid; j++) result += ZALGO_MID[Math.floor(Math.random() * ZALGO_MID.length)];
             for (let j = 0; j < numDown; j++) result += ZALGO_DOWN[Math.floor(Math.random() * ZALGO_DOWN.length)];
@@ -90,11 +89,8 @@ const AsciiGenerator: React.FC = () => {
     const applyLayout = (lines: string[]) => {
         let processed = [...lines];
 
-        // Geometry Transforms: Breaking lines apart
         if (transformMode !== 'none') {
-            const fullText = processed.join('');
-            const chars = fullText.split('');
-
+            const chars = processed.join('').split('');
             if (transformMode === 'vertical') {
                 processed = chars;
             } else if (transformMode === 'diagonal') {
@@ -105,11 +101,9 @@ const AsciiGenerator: React.FC = () => {
             }
         }
 
-        // Line Distortion (Waving at you)
         if (lineEffect !== 'none') {
             processed = processed.map((line, i) => {
                 let shift = 0;
-                // Math.sin is our friend for natural waves
                 if (lineEffect === 'wave') shift = Math.floor((Math.sin(i / 1.5) + 1) * 3);
                 if (lineEffect === 'zigzag') shift = (i % 4) * 2;
                 if (lineEffect === 'stairs') shift = i * 2;
@@ -117,7 +111,6 @@ const AsciiGenerator: React.FC = () => {
             });
         }
 
-        // Alignment: Padding logic
         if (alignment !== 'left') {
             const maxLen = Math.max(...processed.map(l => l.length));
             processed = processed.map(line => {
@@ -136,10 +129,8 @@ const AsciiGenerator: React.FC = () => {
         const frame = selectedFrame;
         const maxLineLen = Math.max(...lines.map(l => l.length), 1);
 
-        // Shadow Logic (Block Shadow - 3D Effect)
         let contentLines = [...lines];
         if (shadowEnabled) {
-            // We duplicate every line, offset it, and fill with the shadow char
             const newLines: string[] = [];
             contentLines.forEach(l => {
                 newLines.push(l);
@@ -148,41 +139,33 @@ const AsciiGenerator: React.FC = () => {
             contentLines = newLines;
         }
 
-        // Frame Logic
         if (frame.id !== 'none') {
             const contentWidth = Math.max(maxLineLen, 5);
 
-            // Frame Builder Helper
-            const buildFrameLine = (pattern: string, type: 'top' | 'bot') => {
+            const buildFrameLine = (pattern: string) => {
                 if (!pattern) return '';
                 if (pattern.includes('[C]')) {
                     const parts = pattern.split('[C]');
                     const filler = frame.id === 'simple' || frame.id === 'simple_rounded' ? '─' : (frame.id === 'double' ? '═' : pattern[0]);
-                    const fillLen = Math.max(0, contentWidth);
-                    return parts[0] + filler.repeat(fillLen) + parts[1];
+                    return parts[0] + filler.repeat(Math.max(0, contentWidth)) + parts[1];
                 }
                 return pattern;
             };
 
-            const top = buildFrameLine(frame.top, 'top');
-            const bot = buildFrameLine(frame.bottom, 'bot');
+            const top = buildFrameLine(frame.top);
+            const bot = buildFrameLine(frame.bottom);
 
             const middle = contentLines.map(line => {
                 const padLen = Math.max(0, contentWidth - line.length);
                 const leftPad = Math.floor(padLen / 2);
-                const rightPad = padLen - leftPad;
-                const centered = ' '.repeat(leftPad) + line + ' '.repeat(rightPad);
-
-                if (frame.middle.includes('[T]')) {
-                    return frame.middle.replace('[T]', centered);
-                }
+                const centered = ' '.repeat(leftPad) + line + ' '.repeat(padLen - leftPad);
+                if (frame.middle.includes('[T]')) return frame.middle.replace('[T]', centered);
                 return `| ${centered} |`;
             });
 
             contentLines = [top, ...middle, bot].filter(l => l);
         }
 
-        // Background Fill (Replacing spaces)
         if (bgChar) {
             contentLines = contentLines.map(line => line.replace(/ /g, bgChar));
         }
@@ -191,17 +174,11 @@ const AsciiGenerator: React.FC = () => {
     };
 
     // --- THE PIPELINE ---
-    // Combining all transformations into one memoized output
     const output = useMemo(() => {
-        // Stage 1: Base Text
         let text = transformText(inputText, selectedFont, isReversed);
         if (isZalgoMode) text = applyZalgo(text);
-
-        // Stage 2: Layout
         let lines = text.split('\n');
         lines = applyLayout(lines);
-
-        // Stage 3: Polish
         return applyFrameAndDecor(lines);
     }, [inputText, selectedFont, isReversed, isZalgoMode, zalgoIntensity, transformMode, lineEffect, alignment, selectedFrame, bgChar, shadowEnabled, shadowChar]);
 
@@ -236,171 +213,187 @@ const AsciiGenerator: React.FC = () => {
         setShadowEnabled(false);
     };
 
+    // Number of active effects, shown on the reset button
+    const activeEffects = [selectedFontId !== 'normal', isReversed, isZalgoMode, transformMode !== 'none', lineEffect !== 'none', alignment !== 'left', selectedFrameId !== 'none', !!bgChar, shadowEnabled].filter(Boolean).length;
+
     // --- UI COMPONENTS ---
 
-    const renderTabButton = (id: TabType, label: string, icon: React.ReactNode) => (
+    const renderTabButton = (id: TabType, label: string) => (
         <button
             onClick={() => setActiveTab(id)}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${activeTab === id
-                    ? 'bg-accent text-accent-foreground shadow-lg shadow-accent/20'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+            aria-pressed={activeTab === id}
+            className={`flex-1 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all ${activeTab === id
+                ? 'bg-accent text-accent-foreground shadow-lg shadow-accent/20'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
         >
-            {icon}
-            <span className="hidden sm:inline">{label}</span>
+            {label}
         </button>
     );
 
-    return (
-        <div className="flex flex-col lg:flex-row h-full gap-4 lg:gap-6 min-h-0">
+    const segBtn = (active: boolean) => `flex-1 px-2 py-1.5 text-[11px] font-bold rounded capitalize transition-colors ${active ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`;
 
-            {/* --- LEFT COLUMN: FONT LIBRARY --- */}
-            <div className="w-full lg:w-72 flex flex-col gap-4 shrink-0 h-48 lg:h-full lg:max-h-full">
-                <div className="bg-card rounded-xl border border-border flex flex-col h-full overflow-hidden shadow-sm">
-                    <div className="p-3 border-b border-border bg-muted/20 shrink-0">
-                        <div className="relative">
+    return (
+        <div className="flex flex-col gap-4">
+
+            {/* --- ROW 1: INPUT + RESULT --- */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+                <div className="bg-card rounded-xl border border-border flex flex-col overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-2 border-b border-border">
+                        <label htmlFor="weird-input" className="text-xs font-bold text-foreground uppercase tracking-wider">Your text</label>
+                        <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                            <span className="font-mono">{inputText.length} chars</span>
+                            {inputText && <button onClick={() => setInputText('')} className="hover:text-destructive">Clear</button>}
+                        </div>
+                    </div>
+                    <textarea
+                        id="weird-input"
+                        value={inputText}
+                        onChange={(e) => setInputText(e.target.value)}
+                        className="w-full h-32 lg:h-36 bg-transparent p-4 text-foreground focus:outline-none resize-none font-sans text-base placeholder:text-muted-foreground/50"
+                        placeholder="Type here..."
+                    />
+                </div>
+
+                <div className="bg-card rounded-xl border border-border flex flex-col overflow-hidden shadow-2xl relative">
+                    <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-accent via-blue-500 to-purple-600 opacity-60"></div>
+                    <div className="flex items-center justify-between gap-2 px-4 py-2 border-b border-border">
+                        <span className="text-xs font-bold text-foreground uppercase tracking-wider truncate">
+                            Result <span className="text-muted-foreground normal-case font-normal">· {selectedFont.name}{activeEffects > (selectedFontId !== 'normal' ? 1 : 0) ? ' + effects' : ''}</span>
+                        </span>
+                        <button
+                            onClick={copyToClipboard}
+                            disabled={!output}
+                            className={`shrink-0 px-4 py-1.5 rounded-lg font-bold text-xs shadow-lg transition-all active:scale-95 disabled:opacity-40 ${copied ? 'bg-green-500 text-white' : 'bg-accent text-accent-foreground hover:bg-accent/90'}`}
+                        >
+                            {copied ? 'Copied!' : 'Copy'}
+                        </button>
+                    </div>
+                    <div className="h-32 lg:h-36 overflow-auto custom-scrollbar flex bg-black/40">
+                        <pre className="m-auto p-4 font-mono text-lg md:text-xl text-emerald-400 whitespace-pre text-center leading-normal">
+                            {output || <span className="text-muted-foreground text-sm">The result appears here.</span>}
+                        </pre>
+                    </div>
+                    <div className="px-4 py-1.5 border-t border-border flex justify-between text-[11px] text-muted-foreground font-mono">
+                        <span>{output.length} chars</span>
+                        <span>{output ? output.split('\n').length : 0} lines</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* --- ROW 2: FONT GALLERY + OPTIONS --- */}
+            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_20rem] gap-4 items-start">
+
+                {/* Font gallery */}
+                <div className="bg-card rounded-xl border border-border flex flex-col overflow-hidden">
+                    <div className="p-3 border-b border-border flex items-center gap-3">
+                        <div className="relative flex-1">
                             <input
                                 type="text"
                                 value={fontSearch}
                                 onChange={(e) => setFontSearch(e.target.value)}
                                 placeholder="Search fonts..."
+                                aria-label="Search fonts"
                                 className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-none pl-8"
                             />
                             <svg className="absolute left-2.5 top-2.5 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" x2="16.65" y1="21" y2="16.65" /></svg>
                         </div>
+                        <span className="text-[11px] text-muted-foreground whitespace-nowrap">{filteredFonts.length} fonts</span>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-2 custom-scrollbar space-y-1">
+                    <div className="p-2 overflow-y-auto custom-scrollbar max-h-[24rem] lg:max-h-[calc(100dvh-25.5rem)] lg:min-h-[16rem] grid grid-cols-2 xl:grid-cols-3 gap-2 content-start">
+                        {filteredFonts.length === 0 && (
+                            <p className="col-span-full text-center text-xs text-muted-foreground py-6">No font matches “{fontSearch}”.</p>
+                        )}
                         {filteredFonts.map(font => (
                             <button
                                 key={font.id}
                                 onClick={() => setSelectedFontId(font.id)}
-                                className={`w-full px-3 py-2 rounded-lg text-left transition-all font-mono flex flex-col gap-0.5 border ${selectedFontId === font.id
-                                        ? 'bg-accent/10 border-accent text-accent'
-                                        : 'bg-transparent border-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
+                                aria-pressed={selectedFontId === font.id}
+                                className={`min-w-0 px-3 py-2 rounded-lg text-left transition-all flex flex-col gap-0.5 border ${selectedFontId === font.id
+                                    ? 'bg-accent/10 border-accent text-accent'
+                                    : 'bg-secondary/40 border-border/60 text-foreground/90 hover:bg-muted hover:border-border'
                                     }`}
                             >
-                                <span className="font-bold text-[10px] opacity-50 uppercase">{font.name}</span>
-                                <span className="truncate text-sm">
-                                    {transformText('Abc 123', font, false)}
-                                </span>
+                                <span className="font-bold text-[10px] text-muted-foreground uppercase truncate">{font.name}</span>
+                                <span className="truncate text-base">{transformText(sampleText, font, false)}</span>
                             </button>
                         ))}
                     </div>
                 </div>
-            </div>
 
-            {/* --- CENTER COLUMN: CONFIGURATION --- */}
-            <div className="w-full lg:w-96 flex flex-col gap-4 shrink-0 flex-1 lg:flex-none">
-
-                {/* Input */}
-                <div className="bg-card p-4 rounded-xl border border-border shrink-0">
-                    <textarea
-                        value={inputText}
-                        onChange={(e) => setInputText(e.target.value)}
-                        className="w-full h-24 bg-background border border-border rounded-lg p-3 text-foreground focus:outline-none focus:border-accent resize-none font-sans text-base placeholder:text-muted-foreground/50"
-                        placeholder="Type here..."
-                    />
-                </div>
-
-                {/* Config Deck */}
-                <div className="bg-card rounded-xl border border-border flex flex-col overflow-hidden flex-1 min-h-0">
-                    <div className="flex p-2 gap-1 border-b border-border bg-muted/10">
-                        {renderTabButton('style', 'Style', <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 7V4h16v3" /><path d="M9 20h6" /><path d="M12 4v16" /></svg>)}
-                        {renderTabButton('layout', 'Layout', <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M3 9h18" /><path d="M9 21V9" /></svg>)}
-                        {renderTabButton('decor', 'Decor', <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5Z" /><path d="m2 17 10 5 10-5" /><path d="m2 12 10 5 10-5" /></svg>)}
-                        {renderTabButton('presets', 'Presets', <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" /></svg>)}
+                {/* Options */}
+                <div className="bg-card rounded-xl border border-border flex flex-col overflow-hidden lg:sticky lg:top-0">
+                    <div className="flex p-2 gap-1 border-b border-border bg-muted/10" role="tablist" aria-label="Options">
+                        {renderTabButton('style', 'Style')}
+                        {renderTabButton('layout', 'Layout')}
+                        {renderTabButton('decor', 'Decor')}
+                        {renderTabButton('presets', 'Presets')}
                     </div>
 
-                    <div className="p-4 overflow-y-auto custom-scrollbar flex-1 space-y-4">
+                    <div className="p-4 space-y-4">
 
-                        {/* TAB: STYLE */}
                         {activeTab === 'style' && (
-                            <div className="space-y-4 animate-in fade-in slide-in-from-left-2">
-                                {/* Font Info */}
-                                <div className="p-3 bg-secondary rounded-lg border border-border">
-                                    <span className="text-xs text-muted-foreground">Current Font:</span>
-                                    <div className="font-bold text-foreground">{selectedFont.name}</div>
-                                </div>
-
+                            <div className="space-y-3 animate-in fade-in">
                                 <label className="flex items-center gap-3 p-3 bg-secondary rounded-lg cursor-pointer hover:bg-muted transition-colors">
-                                    <input type="checkbox" checked={isReversed} onChange={e => setIsReversed(e.target.checked)} className="w-5 h-5 text-accent rounded bg-background border-border focus:ring-accent" />
-                                    <span className="text-sm font-bold text-foreground">Reverse Text</span>
+                                    <input type="checkbox" checked={isReversed} onChange={e => setIsReversed(e.target.checked)} className="w-5 h-5 accent-accent" />
+                                    <span className="text-sm font-bold text-foreground">Reverse text</span>
                                 </label>
 
                                 <div className="space-y-2 p-3 bg-secondary rounded-lg">
                                     <label className="flex items-center gap-3 cursor-pointer">
-                                        <input type="checkbox" checked={isZalgoMode} onChange={e => setIsZalgoMode(e.target.checked)} className="w-5 h-5 text-purple-500 rounded bg-background border-border focus:ring-purple-500" />
-                                        <span className="text-sm font-bold text-foreground">Zalgo / Glitch Mode</span>
+                                        <input type="checkbox" checked={isZalgoMode} onChange={e => setIsZalgoMode(e.target.checked)} className="w-5 h-5 accent-purple-500" />
+                                        <span className="text-sm font-bold text-foreground">Zalgo / glitch</span>
                                     </label>
                                     {isZalgoMode && (
                                         <div className="pt-2">
                                             <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
-                                                <span>Low Intensity</span>
+                                                <span>Low</span>
                                                 <span>Chaos</span>
                                             </div>
                                             <input
                                                 type="range" min="1" max="15"
                                                 value={zalgoIntensity} onChange={e => setZalgoIntensity(parseInt(e.target.value))}
-                                                className="w-full accent-purple-500 h-1 bg-muted rounded-lg appearance-none cursor-pointer"
+                                                className="w-full accent-purple-500"
+                                                aria-label="Zalgo intensity"
                                             />
                                         </div>
                                     )}
                                 </div>
+                                <p className="text-[11px] text-muted-foreground">Pick a font in the gallery: each card previews your own text.</p>
                             </div>
                         )}
 
-                        {/* TAB: LAYOUT */}
                         {activeTab === 'layout' && (
-                            <div className="space-y-4 animate-in fade-in slide-in-from-right-2">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-muted-foreground uppercase">Transform</label>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        {['none', 'vertical', 'diagonal', 'reverse_diagonal'].map((mode) => (
-                                            <button
-                                                key={mode}
-                                                onClick={() => setTransformMode(mode as any)}
-                                                className={`px-3 py-2 text-xs rounded border transition-colors ${transformMode === mode
-                                                        ? 'bg-accent/10 border-accent text-accent'
-                                                        : 'bg-secondary border-border text-muted-foreground'
-                                                    }`}
-                                            >
+                            <div className="space-y-4 animate-in fade-in">
+                                <div className="space-y-1.5">
+                                    <span className="text-[11px] font-bold text-muted-foreground uppercase">Transform</span>
+                                    <div className="grid grid-cols-2 gap-1 bg-secondary p-1 rounded-lg">
+                                        {(['none', 'vertical', 'diagonal', 'reverse_diagonal'] as const).map(mode => (
+                                            <button key={mode} onClick={() => setTransformMode(mode)} aria-pressed={transformMode === mode} className={segBtn(transformMode === mode)}>
                                                 {mode.replace('_', ' ')}
                                             </button>
                                         ))}
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-muted-foreground uppercase">Line Effect</label>
-                                    <div className="flex gap-2 bg-secondary p-1 rounded-lg">
-                                        {['none', 'wave', 'zigzag', 'stairs'].map((effect) => (
-                                            <button
-                                                key={effect}
-                                                onClick={() => setLineEffect(effect as any)}
-                                                className={`flex-1 py-1.5 text-[10px] uppercase font-bold rounded transition-colors ${lineEffect === effect
-                                                        ? 'bg-blue-600 text-white'
-                                                        : 'text-muted-foreground hover:text-foreground'
-                                                    }`}
-                                            >
+                                <div className="space-y-1.5">
+                                    <span className="text-[11px] font-bold text-muted-foreground uppercase">Line effect</span>
+                                    <div className="grid grid-cols-4 gap-1 bg-secondary p-1 rounded-lg">
+                                        {(['none', 'wave', 'zigzag', 'stairs'] as const).map(effect => (
+                                            <button key={effect} onClick={() => setLineEffect(effect)} aria-pressed={lineEffect === effect} className={segBtn(lineEffect === effect)}>
                                                 {effect}
                                             </button>
                                         ))}
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-muted-foreground uppercase">Alignment</label>
-                                    <div className="flex gap-2">
-                                        {['left', 'center', 'right'].map((align) => (
-                                            <button
-                                                key={align}
-                                                onClick={() => setAlignment(align as any)}
-                                                className={`flex-1 py-2 rounded border text-xs capitalize ${alignment === align
-                                                        ? 'bg-muted border-border text-foreground'
-                                                        : 'bg-background border-border text-muted-foreground'
-                                                    }`}
-                                            >
+                                <div className="space-y-1.5">
+                                    <span className="text-[11px] font-bold text-muted-foreground uppercase">Alignment</span>
+                                    <div className="grid grid-cols-3 gap-1 bg-secondary p-1 rounded-lg">
+                                        {(['left', 'center', 'right'] as const).map(align => (
+                                            <button key={align} onClick={() => setAlignment(align)} aria-pressed={alignment === align} className={segBtn(alignment === align)}>
                                                 {align}
                                             </button>
                                         ))}
@@ -409,12 +402,12 @@ const AsciiGenerator: React.FC = () => {
                             </div>
                         )}
 
-                        {/* TAB: DECOR */}
                         {activeTab === 'decor' && (
-                            <div className="space-y-4 animate-in fade-in slide-in-from-right-2">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-muted-foreground uppercase">Frame Style</label>
+                            <div className="space-y-4 animate-in fade-in">
+                                <div className="space-y-1.5">
+                                    <label htmlFor="weird-frame" className="text-[11px] font-bold text-muted-foreground uppercase">Frame</label>
                                     <select
+                                        id="weird-frame"
                                         value={selectedFrameId}
                                         onChange={(e) => setSelectedFrameId(e.target.value)}
                                         className="w-full bg-secondary border border-border rounded-lg p-2 text-sm text-foreground focus:border-accent outline-none"
@@ -423,32 +416,29 @@ const AsciiGenerator: React.FC = () => {
                                     </select>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-muted-foreground uppercase">Background Fill</label>
-                                    <div className="flex gap-2">
-                                        <input
-                                            type="text" maxLength={1} placeholder="Space"
-                                            value={bgChar} onChange={e => setBgChar(e.target.value)}
-                                            className="w-12 h-10 bg-secondary border border-border rounded-lg text-center text-foreground"
-                                        />
-                                        <div className="flex-1 text-[10px] text-muted-foreground flex items-center">
-                                            Replaces spaces with this character.
-                                        </div>
-                                    </div>
+                                <div className="flex items-center gap-3">
+                                    <input
+                                        id="weird-bg"
+                                        type="text" maxLength={1} placeholder="·"
+                                        value={bgChar} onChange={e => setBgChar(e.target.value)}
+                                        className="w-10 h-10 bg-secondary border border-border rounded-lg text-center text-foreground"
+                                    />
+                                    <label htmlFor="weird-bg" className="text-[11px] text-muted-foreground">Background fill: replaces spaces with this character.</label>
                                 </div>
 
                                 <div className="space-y-2 p-3 bg-secondary rounded-lg border border-border">
                                     <label className="flex items-center gap-3 cursor-pointer">
-                                        <input type="checkbox" checked={shadowEnabled} onChange={e => setShadowEnabled(e.target.checked)} className="w-5 h-5 text-accent rounded bg-background border-border" />
-                                        <span className="text-sm font-bold text-foreground">3D Block Shadow</span>
+                                        <input type="checkbox" checked={shadowEnabled} onChange={e => setShadowEnabled(e.target.checked)} className="w-5 h-5 accent-accent" />
+                                        <span className="text-sm font-bold text-foreground">3D block shadow</span>
                                     </label>
                                     {shadowEnabled && (
-                                        <div className="pt-2 flex items-center gap-2">
-                                            <span className="text-xs text-muted-foreground">Shadow Char:</span>
+                                        <div className="pt-1 flex items-center gap-2">
+                                            <span className="text-xs text-muted-foreground">Shadow character</span>
                                             <input
                                                 type="text" maxLength={1}
                                                 value={shadowChar} onChange={e => setShadowChar(e.target.value)}
                                                 className="w-8 h-8 bg-background border border-border rounded text-center text-xs"
+                                                aria-label="Shadow character"
                                             />
                                         </div>
                                     )}
@@ -456,70 +446,41 @@ const AsciiGenerator: React.FC = () => {
                             </div>
                         )}
 
-                        {/* TAB: PRESETS */}
                         {activeTab === 'presets' && (
-                            <div className="grid grid-cols-2 gap-2 animate-in fade-in zoom-in-95">
-                                {ASCII_ART_TEMPLATES.map(tmpl => (
-                                    <button
-                                        key={tmpl.id}
-                                        onClick={() => insertTemplate(tmpl.art)}
-                                        className="p-3 bg-secondary rounded-lg border border-border hover:border-accent text-left group transition-all"
-                                    >
-                                        <div className="text-[10px] font-bold text-muted-foreground uppercase mb-1 group-hover:text-accent">{tmpl.category}</div>
-                                        <div className="text-sm font-bold text-foreground">{tmpl.name}</div>
-                                    </button>
-                                ))}
+                            <div className="space-y-2 animate-in fade-in">
+                                <label htmlFor="weird-preset" className="text-[11px] font-bold text-muted-foreground uppercase">Load a classic</label>
+                                <select
+                                    id="weird-preset"
+                                    value=""
+                                    onChange={(e) => {
+                                        const t = ASCII_ART_TEMPLATES.find(x => x.id === e.target.value);
+                                        if (t) insertTemplate(t.art);
+                                    }}
+                                    className="w-full bg-secondary border border-border rounded-lg p-2 text-sm text-foreground focus:border-accent outline-none"
+                                >
+                                    <option value="">Choose a preset…</option>
+                                    {TEMPLATE_GROUPS.map(g => (
+                                        <optgroup key={g.category} label={g.category}>
+                                            {g.items.map(t => <option key={t.id} value={t.id}>{t.name}   {t.art}</option>)}
+                                        </optgroup>
+                                    ))}
+                                </select>
+                                <p className="text-[11px] text-muted-foreground">Replaces your text and resets the effects.</p>
                             </div>
                         )}
-
                     </div>
 
-                    {/* Reset Button */}
                     <div className="p-3 border-t border-border bg-muted/10">
                         <button
                             onClick={resetAll}
-                            className="w-full py-2 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
+                            disabled={activeEffects === 0}
+                            className="w-full py-2 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors disabled:opacity-40 disabled:hover:bg-transparent"
                         >
-                            Reset All Settings
+                            Reset all settings{activeEffects ? ` (${activeEffects} active)` : ''}
                         </button>
                     </div>
                 </div>
             </div>
-
-            {/* --- RIGHT COLUMN: PREVIEW --- */}
-            <div className="flex-1 flex flex-col gap-4 min-w-0">
-                <div className="flex-1 bg-card rounded-xl border border-border relative group overflow-hidden flex flex-col shadow-2xl min-h-[300px]">
-                    {/* Gradient Line */}
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-accent via-blue-500 to-purple-600 opacity-50"></div>
-
-                    {/* Copy Button */}
-                    <div className="absolute top-4 right-4 z-20">
-                        <button
-                            onClick={copyToClipboard}
-                            className={`px-6 py-2 rounded-lg font-bold text-sm shadow-lg flex items-center gap-2 transition-all transform active:scale-95 ${copied
-                                    ? 'bg-green-500 text-white'
-                                    : 'bg-accent text-accent-foreground hover:bg-accent/90'
-                                }`}
-                        >
-                            {copied ? 'Copied!' : 'Copy'}
-                        </button>
-                    </div>
-
-                    {/* Output Canvas */}
-                    <div className="flex-1 p-8 overflow-auto custom-scrollbar flex items-center justify-center bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-background via-black to-black">
-                        <pre className="font-mono text-xl text-emerald-400 whitespace-pre text-center leading-normal">
-                            {output}
-                        </pre>
-                    </div>
-
-                    {/* Info Footer */}
-                    <div className="p-3 bg-card border-t border-border flex justify-between items-center text-xs text-muted-foreground font-mono">
-                        <span>{output.length} chars</span>
-                        <span>{output.split('\n').length} lines</span>
-                    </div>
-                </div>
-            </div>
-
         </div>
     );
 };

@@ -14,11 +14,11 @@ const HASHTAG_SETS: Record<string, string[]> = {
 
 // --- DATA: Tips ---
 const PLATFORM_TIPS: Record<string, string> = {
-    [SocialPlatform.LINKEDIN]: "💡 Tip: Use 3-5 relevant hashtags. Keep the first 3 lines engaging to trigger 'See more'.",
-    [SocialPlatform.TWITTER]: "💡 Tip: Keep it under 280 chars. Use 1-2 hashtags max. Threads work great for long content.",
-    [SocialPlatform.INSTAGRAM]: "💡 Tip: Put hashtags in the first comment or separated by dots. Use high-quality visuals.",
-    [SocialPlatform.FACEBOOK]: "💡 Tip: Keep it conversational. Questions drive more engagement than statements.",
-    [SocialPlatform.DISCORD]: "💡 Tip: Use Markdown (**bold**, *italics*) to structure your announcements.",
+    [SocialPlatform.LINKEDIN]: "Use 3-5 relevant hashtags. Keep the first 3 lines engaging to trigger 'See more'.",
+    [SocialPlatform.TWITTER]: "Keep it under 280 chars. Use 1-2 hashtags max. Threads work great for long content.",
+    [SocialPlatform.INSTAGRAM]: "Put hashtags in the first comment or separated by dots. Use high-quality visuals.",
+    [SocialPlatform.FACEBOOK]: "Keep it conversational. Questions drive more engagement than statements.",
+    [SocialPlatform.DISCORD]: "Use Markdown (**bold**, *italics*) to structure your announcements.",
 };
 
 // --- TYPES ---
@@ -35,20 +35,21 @@ interface Snippet {
     content: string;
 }
 
+const readJson = <T,>(key: string, fallback: T): T => {
+    try { return JSON.parse(localStorage.getItem(key) || '') as T; } catch { return fallback; }
+};
+
 const SocialFormatter: React.FC = () => {
     const [platform, setPlatform] = useState<SocialPlatform>(SocialPlatform.LINKEDIN);
 
     // Persisted content
-    const [content, setContent] = useState(() => {
-        return localStorage.getItem('social_draft') || '';
-    });
+    const [content, setContent] = useState(() => localStorage.getItem('social_draft') || '');
 
     // User Snippets
-    const [snippets, setSnippets] = useState<Snippet[]>(() => {
-        try { return JSON.parse(localStorage.getItem('social_snippets') || '[]'); } catch { return []; }
-    });
+    const [snippets, setSnippets] = useState<Snippet[]>(() => readJson<Snippet[]>('social_snippets', []));
     const [newSnippetName, setNewSnippetName] = useState('');
     const [snippetMsg, setSnippetMsg] = useState('');
+    const [showSnippets, setShowSnippets] = useState(false);
 
     // Save drafts & snippets
     useEffect(() => { localStorage.setItem('social_draft', content); }, [content]);
@@ -61,10 +62,9 @@ const SocialFormatter: React.FC = () => {
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [emojiCategory, setEmojiCategory] = useState('Recent');
     const [emojiSearch, setEmojiSearch] = useState('');
-    const [recentEmojis, setRecentEmojis] = useState<string[]>(() => {
-        try { return JSON.parse(localStorage.getItem('social_recent_emojis') || '[]'); } catch { return []; }
-    });
+    const [recentEmojis, setRecentEmojis] = useState<string[]>(() => readJson<string[]>('social_recent_emojis', []));
     const pickerRef = useRef<HTMLDivElement>(null);
+    const snippetsRef = useRef<HTMLDivElement>(null);
 
     // Profile state
     const [profile, setProfile] = useState<UserProfile>({
@@ -75,17 +75,34 @@ const SocialFormatter: React.FC = () => {
     });
     const [isEditingProfile, setIsEditingProfile] = useState(false);
 
-    // Close picker when clicking outside
+    // Close pop-overs when clicking outside or pressing Escape
     useEffect(() => {
+        if (!showEmojiPicker && !showSnippets) return;
         const handleClickOutside = (event: MouseEvent) => {
-            if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
+            const target = event.target as Node;
+            if (showEmojiPicker && pickerRef.current && !pickerRef.current.contains(target)) {
                 setShowEmojiPicker(false);
-                setEmojiSearch(''); // Reset search on close
+                setEmojiSearch('');
+            }
+            if (showSnippets && snippetsRef.current && !snippetsRef.current.contains(target)) {
+                setShowSnippets(false);
             }
         };
-        if (showEmojiPicker) document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [showEmojiPicker]);
+        const handleKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') { setShowEmojiPicker(false); setShowSnippets(false); }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('keydown', handleKey);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('keydown', handleKey);
+        };
+    }, [showEmojiPicker, showSnippets]);
+
+    const flash = (msg: string) => {
+        setSnippetMsg(msg);
+        setTimeout(() => setSnippetMsg(''), 2000);
+    };
 
     // --- Text Manipulation Logic ---
 
@@ -97,8 +114,7 @@ const SocialFormatter: React.FC = () => {
         }
         const start = textarea.selectionStart;
         const end = textarea.selectionEnd;
-        const currentText = content;
-        const newContent = currentText.substring(0, start) + textToInsert + currentText.substring(end);
+        const newContent = content.substring(0, start) + textToInsert + content.substring(end);
         setContent(newContent);
         setTimeout(() => {
             textarea.focus();
@@ -109,7 +125,6 @@ const SocialFormatter: React.FC = () => {
 
     const insertEmoji = (char: string) => {
         insertText(char);
-        // Update recents
         const newRecents = [char, ...recentEmojis.filter(e => e !== char)].slice(0, 30);
         setRecentEmojis(newRecents);
         localStorage.setItem('social_recent_emojis', JSON.stringify(newRecents));
@@ -158,22 +173,31 @@ const SocialFormatter: React.FC = () => {
         }
     };
 
+    // Templates: the current platform first, then generic ones, then the others
+    const templateGroups = useMemo(() => {
+        const current = SOCIAL_POST_TEMPLATES.filter(t => t.platform === platform || t.platform === 'All');
+        const others = SOCIAL_POST_TEMPLATES.filter(t => t.platform !== platform && t.platform !== 'All');
+        return [
+            { label: `For ${platform}`, items: current },
+            { label: 'Other platforms', items: others },
+        ].filter(g => g.items.length > 0);
+    }, [platform]);
+
+    const applyTemplate = (id: string) => {
+        const tmpl = SOCIAL_POST_TEMPLATES.find(t => t.id === id);
+        if (!tmpl) return;
+        if (content.trim() && !window.confirm('Replace the current draft with this template?')) return;
+        setContent(tmpl.content);
+        textareaRef.current?.focus();
+    };
+
     const saveSnippet = () => {
-        if (!newSnippetName) {
-            setSnippetMsg("⚠️ Name required!");
-            setTimeout(() => setSnippetMsg(''), 2000);
-            return;
-        }
-        if (!content) {
-            setSnippetMsg("⚠️ Editor is empty!");
-            setTimeout(() => setSnippetMsg(''), 2000);
-            return;
-        }
-        const newSnip = { id: Date.now().toString(), title: newSnippetName, content: content };
-        setSnippets(prev => [...prev, newSnip]);
+        const name = newSnippetName.trim();
+        if (!name) { flash('Name required'); return; }
+        if (!content.trim()) { flash('Editor is empty'); return; }
+        setSnippets(prev => [...prev, { id: Date.now().toString(), title: name, content }]);
         setNewSnippetName('');
-        setSnippetMsg("✅ Saved!");
-        setTimeout(() => setSnippetMsg(''), 2000);
+        flash('Snippet saved');
     };
 
     const deleteSnippet = (id: string) => {
@@ -182,8 +206,7 @@ const SocialFormatter: React.FC = () => {
 
     const copyToClipboard = () => {
         navigator.clipboard.writeText(content);
-        setSnippetMsg("Copied to clipboard!");
-        setTimeout(() => setSnippetMsg(''), 2000);
+        flash('Copied to clipboard');
     };
 
     // --- Limits & Stats ---
@@ -209,25 +232,26 @@ const SocialFormatter: React.FC = () => {
             <div className="p-3 pb-2 flex gap-3 relative group">
                 <button
                     onClick={() => setIsEditingProfile(!isEditingProfile)}
-                    className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-accent transition-opacity z-10 bg-secondary/50 rounded-full"
-                    title="Edit Mock Profile"
+                    className="absolute right-2 top-2 opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 text-muted-foreground hover:text-accent transition-opacity z-10 bg-secondary/50 rounded-full"
+                    title="Edit mock profile"
+                    aria-label="Edit mock profile"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></svg>
                 </button>
 
-                <div className={`w-10 h-10 ${isTwitter ? 'rounded-full' : 'rounded-full'} bg-secondary flex items-center justify-center text-muted-foreground font-bold text-sm flex-shrink-0 border border-border`}>
+                <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-muted-foreground font-bold text-sm flex-shrink-0 border border-border">
                     {profile.initials}
                 </div>
 
                 <div className="flex-1 min-w-0 flex flex-col justify-center">
-                    <div className="flex items-center gap-1">
-                        <span className="text-sm font-bold text-foreground leading-tight flex items-center gap-1">
+                    <div className="flex items-center gap-1 min-w-0">
+                        <span className="text-sm font-bold text-foreground leading-tight flex items-center gap-1 truncate">
                             {profile.name}
                             {profile.isVerified && (
                                 <svg className={isTwitter ? "text-blue-400" : "text-muted-foreground"} width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
                             )}
                         </span>
-                        {isTwitter && <span className="text-muted-foreground text-sm font-normal">{handle} · 1h</span>}
+                        {isTwitter && <span className="text-muted-foreground text-sm font-normal truncate">{handle} · 1h</span>}
                     </div>
 
                     {!isTwitter && (
@@ -268,8 +292,8 @@ const SocialFormatter: React.FC = () => {
                         <div className="w-4 h-4 rounded-full bg-red-500/20 flex items-center justify-center text-[8px]">❤️</div>
                         <div className="w-4 h-4 rounded-full bg-green-500/20 flex items-center justify-center text-[8px]">👏</div>
                     </div>
-                    <span className="hover:text-accent hover:underline cursor-pointer">You and 84 others</span>
-                    <span className="ml-auto hover:text-accent hover:underline cursor-pointer">12 comments</span>
+                    <span>You and 84 others</span>
+                    <span className="ml-auto">12 comments</span>
                 </div>
                 <div className="flex justify-between px-1">
                     <ActionButton icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" /></svg>} label="Like" />
@@ -281,52 +305,143 @@ const SocialFormatter: React.FC = () => {
         );
     };
 
+    const selectClass = "min-w-0 flex-1 sm:flex-none bg-background border border-border rounded-lg px-2 py-1.5 text-xs text-foreground focus:outline-none focus:border-accent cursor-pointer";
+
     return (
-        <div className="flex flex-col lg:flex-row gap-0 h-full border border-border rounded-xl overflow-hidden bg-background">
+        <div className="flex flex-col lg:flex-row border border-border rounded-xl overflow-hidden bg-background lg:h-[calc(100dvh-6.5rem)] lg:min-h-[560px]">
 
             {/* --- LEFT: EDITOR --- */}
-            <div className="flex-1 flex flex-col border-r border-border min-w-0 relative">
+            <div className="flex-1 flex flex-col min-w-0 min-h-0 relative">
 
-                {/* Toolbar */}
-                <div className="flex items-center gap-1 p-2 border-b border-border bg-card overflow-x-auto custom-scrollbar">
-                    {/* Styles Group */}
-                    <div className="flex gap-1 pr-2 border-r border-border/50">
-                        <ToolBtn onClick={() => applyStyle('bold_sans')} label="B" title="Bold (Sans)" activeStyle="font-bold" />
-                        <ToolBtn onClick={() => applyStyle('italic_sans')} label="I" title="Italic (Sans)" activeStyle="italic" />
-                        <ToolBtn onClick={() => applyStyle('bold_italic_sans')} label="BI" title="Bold Italic" activeStyle="font-bold italic" />
-                    </div>
-                    <div className="flex gap-1 px-2 border-r border-border/50">
+                {/* Toolbar: platform + text styles + emoji + clear */}
+                <div className="flex flex-wrap items-center gap-1 p-2 border-b border-border bg-card">
+                    <label className="sr-only" htmlFor="social-platform">Platform</label>
+                    <select
+                        id="social-platform"
+                        value={platform}
+                        onChange={(e) => setPlatform(e.target.value as SocialPlatform)}
+                        className="shrink-0 bg-background border border-border rounded-lg px-2 py-1.5 text-xs font-bold text-foreground focus:outline-none focus:border-accent cursor-pointer mr-1"
+                        title="Target platform (sets the character limit and the preview)"
+                    >
+                        {Object.values(SocialPlatform).map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+
+                    <div className="flex gap-0.5 px-1 border-l border-border/50 shrink-0">
+                        <ToolBtn onClick={() => applyStyle('bold_sans')} label="B" title="Bold (selection or last word)" activeStyle="font-bold" />
+                        <ToolBtn onClick={() => applyStyle('italic_sans')} label="I" title="Italic" activeStyle="italic" />
+                        <ToolBtn onClick={() => applyStyle('bold_italic_sans')} label="BI" title="Bold italic" activeStyle="font-bold italic" />
                         <ToolBtn onClick={() => applyStyle('underline')} label="U" title="Underline" activeStyle="underline" />
                         <ToolBtn onClick={() => applyStyle('strikethrough')} label="S" title="Strikethrough" activeStyle="line-through" />
-                    </div>
-                    <div className="flex gap-1 px-2 border-r border-border/50">
                         <ToolBtn onClick={() => applyStyle('monospace')} label="M" title="Monospace" activeStyle="font-mono" />
                         <ToolBtn onClick={() => applyStyle('script')} label="A" title="Script" activeStyle="font-serif italic" />
                     </div>
 
                     <div className="flex-1"></div>
 
-                    {/* Emoji Trigger */}
                     <button
-                        onClick={(e) => { e.stopPropagation(); setShowEmojiPicker(!showEmojiPicker); }}
-                        className={`p-2 rounded transition-colors ${showEmojiPicker ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-accent'}`}
-                        title="Insert Emoji"
+                        onClick={(e) => { e.stopPropagation(); setShowEmojiPicker(!showEmojiPicker); setShowSnippets(false); }}
+                        className={`p-2 rounded shrink-0 transition-colors ${showEmojiPicker ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-accent'}`}
+                        title="Insert emoji"
+                        aria-label="Insert emoji"
+                        aria-expanded={showEmojiPicker}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><line x1="9" x2="9.01" y1="9" y2="9" /><line x1="15" x2="15.01" y1="9" y2="9" /></svg>
                     </button>
-
                     <button
-                        onClick={() => setContent('')}
-                        className="p-2 text-muted-foreground hover:text-destructive transition-colors"
-                        title="Clear"
+                        onClick={() => { if (!content.trim() || window.confirm('Clear the whole draft?')) setContent(''); }}
+                        className="p-2 shrink-0 text-muted-foreground hover:text-destructive transition-colors"
+                        title="Clear draft"
+                        aria-label="Clear draft"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
                     </button>
                 </div>
 
+                {/* Insert bar: hashtags, templates, snippets */}
+                <div className="flex flex-wrap items-center gap-2 px-2 py-2 border-b border-border bg-card/60 relative">
+                    <select
+                        value=""
+                        onChange={(e) => { if (e.target.value) insertText('\n\n' + HASHTAG_SETS[e.target.value].join(' ')); }}
+                        className={selectClass}
+                        aria-label="Insert a hashtag set"
+                    >
+                        <option value=""># Hashtags…</option>
+                        {Object.keys(HASHTAG_SETS).map(cat => (
+                            <option key={cat} value={cat}>{cat} ({HASHTAG_SETS[cat].slice(0, 3).join(' ')}…)</option>
+                        ))}
+                    </select>
+
+                    <select
+                        value=""
+                        onChange={(e) => { if (e.target.value) applyTemplate(e.target.value); }}
+                        className={selectClass}
+                        aria-label="Start from a template"
+                    >
+                        <option value="">Templates…</option>
+                        {templateGroups.map(group => (
+                            <optgroup key={group.label} label={group.label}>
+                                {group.items.map(t => (
+                                    <option key={t.id} value={t.id}>{t.title} · {t.category}{group.label === 'Other platforms' ? ` (${t.platform})` : ''}</option>
+                                ))}
+                            </optgroup>
+                        ))}
+                    </select>
+
+                    <div ref={snippetsRef} className="relative">
+                        <button
+                            onClick={() => { setShowSnippets(!showSnippets); setShowEmojiPicker(false); }}
+                            className={`px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-colors ${showSnippets ? 'bg-accent text-accent-foreground border-accent' : 'bg-background border-border text-muted-foreground hover:text-foreground'}`}
+                            aria-expanded={showSnippets}
+                        >
+                            Snippets ({snippets.length})
+                        </button>
+
+                        {showSnippets && (
+                            <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-2 z-50 w-[min(20rem,calc(100vw-2rem))] bg-card border border-border rounded-xl shadow-2xl p-3 flex flex-col gap-3 animate-in fade-in zoom-in-95 duration-100">
+                                <form
+                                    className="flex gap-1"
+                                    onSubmit={(e) => { e.preventDefault(); saveSnippet(); }}
+                                >
+                                    <input
+                                        value={newSnippetName}
+                                        onChange={(e) => setNewSnippetName(e.target.value)}
+                                        placeholder="Name for the current draft"
+                                        className="flex-1 min-w-0 bg-background border border-border rounded px-2 py-1.5 text-xs text-foreground focus:outline-none focus:border-accent"
+                                        aria-label="Snippet name"
+                                    />
+                                    <button type="submit" className="text-xs bg-accent text-accent-foreground px-3 rounded font-bold hover:opacity-90">Save</button>
+                                </form>
+                                <div className="max-h-56 overflow-y-auto custom-scrollbar flex flex-col gap-1">
+                                    {snippets.length === 0 ? (
+                                        <p className="text-[11px] text-muted-foreground italic">No snippet yet. Name the current draft above to reuse it later.</p>
+                                    ) : snippets.map(s => (
+                                        <div key={s.id} className="flex items-center gap-1 group">
+                                            <button
+                                                onClick={() => { insertText(s.content); setShowSnippets(false); }}
+                                                className="flex-1 min-w-0 text-left px-2 py-1.5 rounded bg-secondary hover:bg-muted border border-border hover:border-accent text-xs text-foreground truncate"
+                                                title="Insert at cursor"
+                                            >
+                                                {s.title}
+                                            </button>
+                                            <button
+                                                onClick={() => deleteSnippet(s.id)}
+                                                className="px-2 py-1.5 text-muted-foreground hover:text-destructive"
+                                                aria-label={`Delete snippet ${s.title}`}
+                                                title="Delete"
+                                            >×</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <span className="ml-auto text-[11px] text-accent font-bold" role="status">{snippetMsg}</span>
+                </div>
+
                 {/* Emoji Picker Panel */}
                 {showEmojiPicker && (
-                    <div ref={pickerRef} className="absolute top-12 right-2 z-50 w-80 bg-card border border-border rounded-xl shadow-2xl flex flex-col h-96 animate-in fade-in zoom-in-95 duration-100 origin-top-right">
+                    <div ref={pickerRef} className="absolute top-12 right-2 z-50 w-[min(20rem,calc(100vw-2rem))] bg-card border border-border rounded-xl shadow-2xl flex flex-col h-96 animate-in fade-in zoom-in-95 duration-100 origin-top-right">
                         <div className="p-2 border-b border-border">
                             <input
                                 autoFocus
@@ -334,142 +449,84 @@ const SocialFormatter: React.FC = () => {
                                 placeholder="Search emojis..."
                                 value={emojiSearch}
                                 onChange={(e) => setEmojiSearch(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-xs text-white focus:border-terminal-accent focus:outline-none"
+                                className="w-full bg-background border border-border rounded px-2 py-1 text-xs text-foreground focus:border-accent focus:outline-none"
+                                aria-label="Search emojis"
                             />
                         </div>
-                        <div className="flex overflow-x-auto p-2 border-b border-slate-700 gap-1 custom-scrollbar shrink-0">
+                        <div className="flex overflow-x-auto p-2 border-b border-border gap-1 custom-scrollbar shrink-0">
                             {['Recent', ...CATEGORIES.filter(c => c !== 'All' && c !== 'Recent')].map(cat => (
-                                <button key={cat} onClick={() => { setEmojiCategory(cat); setEmojiSearch(''); }} className={`px-3 py-1 rounded text-[10px] font-bold whitespace-nowrap transition-colors ${emojiCategory === cat && !emojiSearch ? 'bg-terminal-accent text-terminal-bg' : 'bg-slate-800 text-slate-400 hover:text-white'}`}>{cat}</button>
+                                <button key={cat} onClick={() => { setEmojiCategory(cat); setEmojiSearch(''); }} className={`px-3 py-1 rounded text-[10px] font-bold whitespace-nowrap transition-colors ${emojiCategory === cat && !emojiSearch ? 'bg-accent text-accent-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'}`}>{cat}</button>
                             ))}
                         </div>
                         <div className="flex-1 overflow-y-auto p-2 grid grid-cols-7 gap-1 custom-scrollbar content-start">
                             {filteredEmojis.length > 0 ? (
                                 filteredEmojis.map(smiley => (
-                                    <button key={smiley.id} onClick={() => insertEmoji(smiley.char)} className="aspect-square flex items-center justify-center text-xl hover:bg-slate-700 rounded transition-colors hover:scale-110" title={smiley.name}>{smiley.char}</button>
+                                    <button key={smiley.id} onClick={() => insertEmoji(smiley.char)} className="aspect-square flex items-center justify-center text-xl hover:bg-muted rounded transition-colors hover:scale-110" title={smiley.name}>{smiley.char}</button>
                                 ))
                             ) : (
-                                <div className="col-span-full text-center text-slate-500 text-xs py-4">No emojis found</div>
+                                <div className="col-span-full text-center text-muted-foreground text-xs py-4">
+                                    {emojiCategory === 'Recent' && !emojiSearch ? 'No recent emoji yet' : 'No emojis found'}
+                                </div>
                             )}
                         </div>
                     </div>
                 )}
 
                 {/* Text Area */}
-                <div className="flex-1 relative bg-card group flex flex-col">
-                    <textarea
-                        ref={textareaRef}
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                        onClick={() => setShowEmojiPicker(false)}
-                        className="w-full flex-1 p-6 bg-transparent text-foreground focus:outline-none resize-none font-sans text-lg leading-relaxed selection:bg-accent/20 selection:text-foreground"
-                        placeholder={`Draft your ${platform} post here...`}
-                    />
-                    {/* Footer Stats & Tips */}
-                    <div className="border-t border-border bg-muted/30">
-                        <div className="p-2 px-4 text-[10px] text-accent font-medium bg-accent/5 border-b border-border">
-                            {PLATFORM_TIPS[platform]}
-                        </div>
-                        <div className="flex items-center justify-between px-4 h-8 bg-card">
-                            <div className="flex-1 h-1.5 bg-secondary rounded-full overflow-hidden max-w-[100px]">
-                                <div className={`h-full transition-all duration-300 ${remaining < 0 ? 'bg-destructive' : 'bg-accent'}`} style={{ width: `${percentUsed}%` }} />
-                            </div>
-                            <span className={`text-xs font-mono ml-3 ${remaining < 0 ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
-                                {content.length} / {limit}
-                            </span>
-                        </div>
-                    </div>
-                </div>
+                <textarea
+                    ref={textareaRef}
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    onClick={() => setShowEmojiPicker(false)}
+                    className="w-full flex-1 min-h-[16rem] lg:min-h-0 p-4 md:p-6 bg-card text-foreground focus:outline-none resize-none font-sans text-base leading-relaxed selection:bg-accent/20 selection:text-foreground"
+                    placeholder={`Draft your ${platform} post here...`}
+                    aria-label="Post draft"
+                />
 
-                {/* POWER TOOLS SECTION */}
-                <div className="h-48 bg-card border-t border-border flex flex-col">
-                    <div className="flex border-b border-border">
-                        <div className="p-2 px-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Generators & Snippets</div>
-                        <div className="ml-auto p-2 text-[10px] text-accent font-bold">{snippetMsg}</div>
+                {/* Footer: tip + counter */}
+                <div className="flex items-center gap-3 px-4 py-2 border-t border-border bg-card text-[11px]">
+                    <span className="flex-1 min-w-0 text-accent/90 truncate" title={PLATFORM_TIPS[platform] || ''}>
+                        {PLATFORM_TIPS[platform] ? `Tip: ${PLATFORM_TIPS[platform]}` : ''}
+                    </span>
+                    <div className="w-20 h-1.5 bg-secondary rounded-full overflow-hidden shrink-0" aria-hidden="true">
+                        <div className={`h-full transition-all duration-300 ${remaining < 0 ? 'bg-destructive' : 'bg-accent'}`} style={{ width: `${percentUsed}%` }} />
                     </div>
-                    <div className="flex-1 flex overflow-hidden">
-                        {/* Hashtags Column */}
-                        <div className="w-1/2 border-r border-border p-3 overflow-y-auto custom-scrollbar">
-                            <h4 className="text-[10px] font-bold text-accent uppercase mb-2">Instant Hashtags</h4>
-                            <div className="flex flex-wrap gap-2">
-                                {Object.keys(HASHTAG_SETS).map(cat => (
-                                    <button key={cat} onClick={() => insertText('\n\n' + HASHTAG_SETS[cat].join(' '))} className="px-2 py-1 bg-secondary hover:bg-muted border border-border rounded text-xs text-muted-foreground hover:text-foreground transition-colors">
-                                        + {cat}
-                                    </button>
-                                ))}
-                            </div>
-                            <h4 className="text-[10px] font-bold text-accent uppercase mt-4 mb-2">Templates</h4>
-                            <div className="flex flex-wrap gap-2">
-                                {SOCIAL_POST_TEMPLATES.filter(t => t.platform === 'All' || t.platform === platform).slice(0, 4).map(t => (
-                                    <button key={t.id} onClick={() => { if (window.confirm('Replace content?')) setContent(t.content) }} className="px-2 py-1 bg-secondary hover:bg-muted border border-border rounded text-xs text-muted-foreground hover:text-foreground transition-colors">
-                                        {t.category}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Snippets Column */}
-                        <div className="w-1/2 p-3 overflow-y-auto custom-scrollbar flex flex-col gap-2">
-                            <div className="flex flex-col gap-1 mb-2 p-2 bg-muted/20 rounded border border-border">
-                                <div className="flex justify-between items-center">
-                                    <h4 className="text-[10px] font-bold text-accent uppercase">Create Snippet</h4>
-                                    <span className="text-[9px] text-muted-foreground">Saves current editor text</span>
-                                </div>
-                                <div className="flex gap-1">
-                                    <input value={newSnippetName} onChange={(e) => setNewSnippetName(e.target.value)} placeholder="Snippet Name..." className="flex-1 bg-background border border-border rounded px-2 py-1 text-xs text-foreground focus:outline-none focus:border-accent" />
-                                    <button onClick={saveSnippet} className="text-xs bg-accent text-accent-foreground px-3 rounded font-bold hover:opacity-90">Save</button>
-                                </div>
-                            </div>
-
-                            <h4 className="text-[10px] font-bold text-muted-foreground uppercase mt-1">Your Library</h4>
-                            {snippets.length === 0 ? (
-                                <p className="text-[10px] text-muted-foreground italic">No snippets saved. Write text in the editor and click Save above.</p>
-                            ) : (
-                                snippets.map(s => (
-                                    <div key={s.id} className="flex items-center justify-between group bg-secondary p-2 rounded border border-border hover:border-accent cursor-pointer" onClick={() => insertText(s.content)}>
-                                        <span className="text-xs text-muted-foreground truncate flex-1 font-bold">{s.title}</span>
-                                        <div className="flex gap-1">
-                                            <span className="text-[9px] text-muted-foreground uppercase bg-background/50 px-1 rounded mr-1">Insert</span>
-                                            <button onClick={(e) => { e.stopPropagation(); deleteSnippet(s.id); }} className="text-muted-foreground hover:text-destructive px-1">×</button>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </div>
+                    <span className={`font-mono shrink-0 ${remaining < 0 ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
+                        {content.length} / {limit}
+                    </span>
                 </div>
             </div>
 
             {/* --- RIGHT: PREVIEW --- */}
-            <div className="w-full lg:w-[450px] bg-background flex flex-col border-l border-border">
+            <div className="w-full lg:w-[420px] bg-background flex flex-col border-t lg:border-t-0 lg:border-l border-border min-h-0">
 
-                {/* Preview Header / Device Toggle */}
-                <div className="h-12 border-b border-border flex items-center justify-between px-4 bg-card">
-                    <div className="flex gap-2">
-                        <button onClick={() => setShowPreview('web')} className={`flex items-center gap-1.5 px-2 py-1 rounded text-sm font-medium transition-colors ${showPreview === 'web' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-                            Web
-                        </button>
-                        <button onClick={() => setShowPreview('mobile')} className={`flex items-center gap-1.5 px-2 py-1 rounded text-sm font-medium transition-colors ${showPreview === 'mobile' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-                            Mobile
-                        </button>
+                <div className="h-12 shrink-0 border-b border-border flex items-center justify-between px-4 bg-card">
+                    <div className="flex gap-1" role="group" aria-label="Preview size">
+                        {(['web', 'mobile'] as const).map(mode => (
+                            <button
+                                key={mode}
+                                onClick={() => setShowPreview(mode)}
+                                aria-pressed={showPreview === mode}
+                                className={`px-2 py-1 rounded text-sm font-medium capitalize transition-colors ${showPreview === mode ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                            >
+                                {mode}
+                            </button>
+                        ))}
                     </div>
-
-                    <select value={platform} onChange={(e) => setPlatform(e.target.value as SocialPlatform)} className="bg-transparent text-xs font-bold text-muted-foreground uppercase focus:outline-none cursor-pointer hover:text-foreground">
-                        {Object.values(SocialPlatform).map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">{platform} preview</span>
                 </div>
 
-                {/* Scrollable Preview Area */}
                 <div className="flex-1 overflow-y-auto p-4 custom-scrollbar flex justify-center items-start">
-                    <div className={`bg-card rounded-xl border border-border shadow-2xl overflow-hidden flex-shrink-0 transition-all duration-300 ${showPreview === 'mobile' ? 'w-[320px]' : 'w-full'}`}>
+                    <div className={`bg-card rounded-xl border border-border shadow-2xl overflow-hidden flex-shrink-0 transition-all duration-300 ${showPreview === 'mobile' ? 'w-full max-w-[320px]' : 'w-full'}`}>
 
                         {renderPreviewHeader()}
 
                         {isEditingProfile && (
                             <div className="px-3 pb-3 bg-muted/20 border-b border-border animate-in slide-in-from-top-2">
-                                <input className="w-full text-sm p-2 bg-background border border-border rounded mb-2 text-foreground" value={profile.name} onChange={e => setProfile({ ...profile, name: e.target.value, initials: e.target.value.substring(0, 2).toUpperCase() })} placeholder="Name" />
-                                <input className="w-full text-xs p-2 bg-background border border-border rounded mb-2 text-foreground" value={profile.headline} onChange={e => setProfile({ ...profile, headline: e.target.value })} placeholder="Headline" />
+                                <input className="w-full text-sm p-2 bg-background border border-border rounded mb-2 text-foreground" value={profile.name} onChange={e => setProfile({ ...profile, name: e.target.value, initials: e.target.value.substring(0, 2).toUpperCase() })} placeholder="Name" aria-label="Profile name" />
+                                <input className="w-full text-xs p-2 bg-background border border-border rounded mb-2 text-foreground" value={profile.headline} onChange={e => setProfile({ ...profile, headline: e.target.value })} placeholder="Headline" aria-label="Profile headline" />
                                 <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
-                                    <input type="checkbox" checked={profile.isVerified} onChange={e => setProfile({ ...profile, isVerified: e.target.checked })} /> Show Verified Badge
+                                    <input type="checkbox" checked={profile.isVerified} onChange={e => setProfile({ ...profile, isVerified: e.target.checked })} /> Show verified badge
                                 </label>
                             </div>
                         )}
@@ -482,9 +539,8 @@ const SocialFormatter: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Footer Actions */}
-                <div className="p-4 bg-card border-t border-border flex justify-end gap-2">
-                    <button onClick={copyToClipboard} className="bg-accent hover:bg-accent/90 text-accent-foreground px-6 py-2 rounded-lg font-bold shadow-lg transition-all active:scale-95 flex items-center gap-2">
+                <div className="p-3 shrink-0 bg-card border-t border-border flex justify-end">
+                    <button onClick={copyToClipboard} disabled={!content} className="w-full sm:w-auto bg-accent hover:bg-accent/90 disabled:opacity-40 text-accent-foreground px-6 py-2 rounded-lg font-bold shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
                         Copy Text
                     </button>
@@ -497,16 +553,16 @@ const SocialFormatter: React.FC = () => {
 // --- Sub-components ---
 
 const ToolBtn = ({ onClick, label, title, activeStyle }: { onClick: () => void, label: string, title: string, activeStyle: string }) => (
-    <button onClick={onClick} title={title} className="w-8 h-8 flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+    <button onClick={onClick} title={title} aria-label={title} className="w-8 h-8 shrink-0 flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
         <span className={`text-base ${activeStyle}`}>{label}</span>
     </button>
 );
 
 const ActionButton = ({ icon, label }: { icon: React.ReactNode, label: string }) => (
-    <button className="flex items-center gap-1.5 px-2 py-3 text-sm font-bold text-muted-foreground hover:bg-muted rounded transition-colors">
+    <span className="flex items-center gap-1.5 px-2 py-3 text-sm font-bold text-muted-foreground rounded" aria-hidden="true">
         {icon}
         {label && <span className="hidden sm:inline">{label}</span>}
-    </button>
+    </span>
 );
 
 const ContentWithSeeMore = ({ text }: { text: string }) => {
@@ -517,7 +573,7 @@ const ContentWithSeeMore = ({ text }: { text: string }) => {
         <span>
             {visibleText}
             <span className="text-muted-foreground/60">... </span>
-            <span className="text-accent hover:underline cursor-pointer font-medium">see more</span>
+            <span className="text-accent font-medium">see more</span>
         </span>
     );
 };

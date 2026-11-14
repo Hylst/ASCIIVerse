@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.0] - 2026-11-14
+
+### Changed
+- **Social Studio**: the editor and the preview now fill the window height. The platform picker moves into the toolbar, which wraps on phones. Hashtag sets and post templates become dropdowns (templates grouped by platform, confirmation before replacing a draft), snippets open in a small panel. Tip, progress bar and counter share one footer line; the Copy button is disabled while the draft is empty.
+- **Draw Canvas**: the grid sits right under a compact toolbar, at real pixel size with zoom buttons, a Fit button and a symmetry dropdown. The character palette is grouped (Blocks, Shapes, Lines, Other), sits on the right on large screens and above the grid on phones, and accepts any typed character. New: keyboard shortcuts (P, E, F, L, R, C, Ctrl+Z, Ctrl+Y), undoable Clear, list of drawings saved in the browser (open or delete). Phones start with a 24 x 16 grid.
+- **Weird Text Maker**: input and result side by side at the top, font gallery below with a preview of your own text (two columns on phones), options in tabs. Presets become a dropdown grouped by category. A reset button shows how many effects are active.
+- **Text Transformer**: the output updates as you type (no button), categories as tabs with chips (a grouped dropdown on phones), a one-line explanation of each transformation, "Use as input" to chain transformations, character, word and line counters. History is saved on copy and folds away.
+
+### Fixed
+- **Draw Canvas**: typing a size no longer crashes the editor (the value is applied on Enter or when leaving the field, clamped to 5 to 100); undo and redo restore the grid size; copied art drops trailing spaces.
+- **Text Transformer**: Sentence case and tOGGLE no longer duplicate other transformations; Title Case, the snake/kebab/camel family and "Letters and digits only" keep accented letters; Base64 handles UTF-8 without deprecated functions; a corrupted history no longer breaks the tool.
+
 ## [2.1.1] - 2026-11-14
 
 ### Changed
