@@ -20,7 +20,7 @@
 ## Technologie
 
 ASCIIVerse est bâti avec les technologies web les plus modernes :
-- **React 18** & **TypeScript** pour une logique robuste.
+- **React 19** & **TypeScript** pour une logique robuste.
 - **Vite** pour un build ultra-rapide.
 - **Tailwind CSS** avec un système de variables sémantiques pour un thème dynamique.
 - **Vite PWA** pour le support hors-ligne et l'installation sur mobile/desktop.

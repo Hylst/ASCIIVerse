@@ -20,7 +20,7 @@
 
 ## 🛠️ Technical Stack
 
-- **Framework**: [React 18](https://reactjs.org/) + [TypeScript](https://www.typescriptlang.org/)
+- **Framework**: [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
 - **Build Tool**: [Vite 6](https://vitejs.dev/)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/) (Semantic Design System)
 - **Deployment**: [Docker](https://www.docker.com/) (NGINX Alpine)

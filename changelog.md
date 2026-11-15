@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Non publié]
+
+- `README.md` et `about.md` : React 19 (et non 18), version déclarée dans `package.json` ; lien vers react.dev.
+
 ## [2.2.0] - 2026-11-14
 
 ### Changed
