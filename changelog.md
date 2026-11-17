@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Non publié]
 
+- Source regroupée dans `D:\0CODE\0FINAL\apps\asciiverse` (17/11/2026) ; l'image du README pointe désormais en relatif vers `public/pwa-512x512.png` au lieu d'un chemin `file:///` de l'ancien emplacement. Build inchangé.
 - `README.md` et `about.md` : React 19 (et non 18), version déclarée dans `package.json` ; lien vers react.dev.
 
 ## [2.2.0] - 2026-11-14

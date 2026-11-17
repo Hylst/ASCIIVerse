@@ -6,7 +6,7 @@
 
 **ASCIIVerse Studio** is a premium, high-tech creative suite for text generation, ASCII art, and social media formatting. Designed with a sleek terminal aesthetic, it's 100% frontend-only, privacy-focused, and offline-ready.
 
-![ASCIIVerse Preview](file:///d:/0CODE/AntiGravity/ASCIIVerse/ASCIIVerse/public/pwa-512x512.png)
+![ASCIIVerse Preview](public/pwa-512x512.png)
 
 ## ✨ Features
 
