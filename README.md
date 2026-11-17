@@ -66,4 +66,4 @@ For shared hosting (like OVH, o2switch, etc.):
 - [À propos (FR)](about.md)
 
 ## ⚖️ License
-MIT License. 100% Privacy - nothing leaves your browser.
+MIT License, see [LICENSE](LICENSE). 100% Privacy - nothing leaves your browser.
