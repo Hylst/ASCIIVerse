@@ -37,7 +37,7 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
     },
     plugins: [
-      siteUrl(['sitemap.xml']),
+      siteUrl(['sitemap.xml', 'robots.txt']),
       react(),
       VitePWA({
         registerType: 'autoUpdate',
