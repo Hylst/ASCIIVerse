@@ -43,9 +43,12 @@ export default defineConfig(({ mode }) => {
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
         manifest: {
+          id: './',
           name: 'ASCIIverse Studio',
           short_name: 'ASCIIverse',
           description: 'The ultimate creative text suite. ASCII art, Kaomoji, and social tools.',
+          lang: 'en',
+          dir: 'ltr',
           theme_color: '#0f172a',
           background_color: '#0f172a',
           display: 'standalone',
